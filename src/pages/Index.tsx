@@ -3,10 +3,11 @@ import { useState } from 'react';
 import CodeBlock from '@/components/CodeBlock';
 import AdvancedApiFeatures from '@/components/AdvancedApiFeatures';
 import RealTimeNotifications from '@/components/RealTimeNotifications';
+import IntelligentContentAnalyzer from '@/components/IntelligentContentAnalyzer';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowRight, LoaderCircle } from 'lucide-react';
+import { ArrowRight, LoaderCircle, Brain, Zap } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from "@/components/ui/use-toast";
@@ -15,6 +16,8 @@ import { Link } from 'react-router-dom';
 const Index = () => {
   const [url, setUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showIntelligentAnalysis, setShowIntelligentAnalysis] = useState(false);
+  const [scrapedHtml, setScrapedHtml] = useState('');
   const [apiResult, setApiResult] = useState<{
     endpoint: string;
     apiKey: string;
@@ -52,8 +55,10 @@ const Index = () => {
 
     setIsLoading(true);
     setApiResult(null);
+    setShowIntelligentAnalysis(false);
 
     try {
+      // First, let's get the HTML content for intelligent analysis
       const { data: generatedApiData, error } = await supabase.functions.invoke('generate-api', {
         body: { source_url: url },
       });
@@ -83,6 +88,18 @@ const Index = () => {
       
       const scrapedData = await initialScrapeResponse.json();
 
+      // Extract HTML content for intelligent analysis
+      if (scrapedData.source_url) {
+        try {
+          const htmlResponse = await fetch(url);
+          const htmlContent = await htmlResponse.text();
+          setScrapedHtml(htmlContent);
+          setShowIntelligentAnalysis(true);
+        } catch (htmlError) {
+          console.warn("Could not fetch HTML for analysis:", htmlError);
+        }
+      }
+
       const result = {
         endpoint: generatedApiData.api_endpoint,
         apiKey: generatedApiData.api_key,
@@ -110,6 +127,14 @@ const Index = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleAnalysisComplete = (result: any) => {
+    console.log('🎉 Intelligent analysis completed:', result);
+    toast({
+      title: "AI Analysis Complete",
+      description: `Detected ${result.classification.primaryType} website with ${result.extraction.data.length} structured items and ${result.apiSpec.endpoints.length} API endpoints.`,
+    });
   };
 
   return (
@@ -154,12 +179,23 @@ const Index = () => {
             <LoaderCircle className="h-12 w-12 animate-spin text-primary" />
             <p className="text-muted-foreground">Crafting your API with Level 3 AI intelligence... this might take a moment.</p>
             <div className="text-sm text-muted-foreground max-w-md">
-              <p>🤖 AI is analyzing content patterns and entities</p>
-              <p>🔄 Setting up real-time synchronization</p>
-              <p>🧠 Enhancing data with sentiment analysis</p>
-              <p>🚀 Generating smart GraphQL schema</p>
+              <p className="flex items-center gap-2"><Brain className="h-4 w-4" /> AI is analyzing content patterns and entities</p>
+              <p className="flex items-center gap-2"><Zap className="h-4 w-4" /> Setting up real-time synchronization</p>
+              <p className="flex items-center gap-2"><Brain className="h-4 w-4" /> Enhancing data with sentiment analysis</p>
+              <p className="flex items-center gap-2"><ArrowRight className="h-4 w-4" /> Generating smart GraphQL schema</p>
             </div>
            </div>
+        )}
+
+        {/* Show intelligent analysis when HTML is available */}
+        {showIntelligentAnalysis && scrapedHtml && (
+          <div className="w-full max-w-6xl mb-6">
+            <IntelligentContentAnalyzer
+              url={url}
+              html={scrapedHtml}
+              onAnalysisComplete={handleAnalysisComplete}
+            />
+          </div>
         )}
 
         {/* Show real-time notifications for logged-in users */}
