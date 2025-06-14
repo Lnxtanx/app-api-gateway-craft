@@ -90,6 +90,24 @@ serve(async (req) => {
       });
       const page = await browser.newPage();
       await page.goto(api.source_url, { waitUntil: 'networkidle2', timeout: 30000 });
+
+      // --- NEW: Auto-scroll to handle infinite loading ---
+      console.log('Auto-scrolling to load dynamic content...');
+      let previousHeight;
+      for (let i = 0; i < 5; i++) { // Scroll a maximum of 5 times
+        previousHeight = await page.evaluate('document.body.scrollHeight');
+        await page.evaluate('window.scrollTo(0, document.body.scrollHeight)');
+        // Wait for new content to load
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        const newHeight = await page.evaluate('document.body.scrollHeight');
+        if (newHeight === previousHeight) {
+          console.log('Scrolling finished, no new content loaded.');
+          break; // Exit if page height hasn't changed
+        }
+        console.log(`Scrolled down, new page height: ${newHeight}`);
+      }
+      // --- END NEW ---
+
       html = await page.content();
       console.log(`Successfully scraped content from ${api.source_url}`);
     } catch (scrapeError) {
