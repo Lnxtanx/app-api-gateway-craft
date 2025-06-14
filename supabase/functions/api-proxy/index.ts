@@ -23,12 +23,18 @@ serve(async (req) => {
       });
     }
 
+    const upperCaseMethod = method.toUpperCase();
+
     // Prepare and send the request to the target API from the server
     const fetchOptions: RequestInit = {
-      method: method,
-      headers: clientHeaders,
-      body: requestBody || undefined, // Body can be null
+      method: upperCaseMethod,
+      headers: clientHeaders || {}, // Ensure headers is an object
     };
+
+    // Only add a body for methods that support it, and if a body is provided.
+    if (requestBody && !['GET', 'HEAD'].includes(upperCaseMethod)) {
+      fetchOptions.body = requestBody;
+    }
 
     const targetApiResponse = await fetch(url, fetchOptions);
 

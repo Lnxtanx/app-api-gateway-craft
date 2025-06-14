@@ -51,14 +51,20 @@ const ApiTesterPage = () => {
         }
       }
 
-      // Call the 'api-proxy' edge function instead of fetch
+      const requestPayload: { [key: string]: any } = {
+        method,
+        url: endpoint,
+        headers,
+      };
+
+      // Only include body for relevant methods
+      if (['POST', 'PUT', 'PATCH'].includes(method)) {
+        requestPayload.body = body || null;
+      }
+
+      // Call the 'api-proxy' edge function with the correctly formed payload
       const { data: proxyResponse, error: functionError } = await supabase.functions.invoke('api-proxy', {
-        body: {
-          method,
-          url: endpoint,
-          headers,
-          body: body || null,
-        },
+        body: requestPayload,
       });
 
       if (functionError) {
