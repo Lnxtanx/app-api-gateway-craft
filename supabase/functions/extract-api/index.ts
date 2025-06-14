@@ -640,6 +640,393 @@ class GraphQLSchemaGenerator {
   }
 }
 
+/**
+ * Level 3: Real-Time Data Synchronization
+ */
+class RealTimeDataSync {
+  private supabase: any;
+
+  constructor(supabaseClient: any) {
+    this.supabase = supabaseClient;
+  }
+
+  // Content hashing for change detection
+  static generateContentHash(content: string): string {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(content);
+    const hashBuffer = crypto.subtle.digestSync('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  // Store content snapshot for comparison
+  async storeContentSnapshot(apiId: string, contentHash: string, data: any): Promise<void> {
+    try {
+      await this.supabase
+        .from('content_snapshots')
+        .upsert({
+          api_id: apiId,
+          content_hash: contentHash,
+          snapshot_data: data,
+          last_updated: new Date().toISOString()
+        });
+    } catch (error) {
+      console.error('Error storing content snapshot:', error);
+    }
+  }
+
+  // Check for content changes
+  async detectChanges(apiId: string, currentHash: string): Promise<{
+    hasChanged: boolean;
+    previousHash?: string;
+    changeType: 'new' | 'updated' | 'unchanged';
+  }> {
+    try {
+      const { data: snapshot } = await this.supabase
+        .from('content_snapshots')
+        .select('content_hash')
+        .eq('api_id', apiId)
+        .single();
+
+      if (!snapshot) {
+        return { hasChanged: true, changeType: 'new' };
+      }
+
+      if (snapshot.content_hash !== currentHash) {
+        return { 
+          hasChanged: true, 
+          previousHash: snapshot.content_hash,
+          changeType: 'updated' 
+        };
+      }
+
+      return { hasChanged: false, changeType: 'unchanged' };
+    } catch (error) {
+      console.error('Error detecting changes:', error);
+      return { hasChanged: true, changeType: 'new' };
+    }
+  }
+
+  // Generate change notifications
+  async notifyConsumers(apiId: string, changeType: string, data: any): Promise<void> {
+    try {
+      // Store notification for API consumers
+      await this.supabase
+        .from('api_notifications')
+        .insert({
+          api_id: apiId,
+          change_type: changeType,
+          notification_data: data,
+          created_at: new Date().toISOString()
+        });
+
+      console.log(`Change notification sent for API ${apiId}: ${changeType}`);
+    } catch (error) {
+      console.error('Error sending notification:', error);
+    }
+  }
+}
+
+/**
+ * Level 3: Predictive Caching System
+ */
+class PredictiveCaching {
+  private supabase: any;
+
+  constructor(supabaseClient: any) {
+    this.supabase = supabaseClient;
+  }
+
+  // Track API usage patterns
+  async recordUsagePattern(apiId: string, endpoint: string, params: any, userLocation?: string): Promise<void> {
+    try {
+      await this.supabase
+        .from('api_usage_patterns')
+        .insert({
+          api_id: apiId,
+          endpoint,
+          parameters: params,
+          user_location: userLocation,
+          access_time: new Date().toISOString(),
+          hour_of_day: new Date().getHours(),
+          day_of_week: new Date().getDay()
+        });
+    } catch (error) {
+      console.error('Error recording usage pattern:', error);
+    }
+  }
+
+  // Predict optimal cache strategy
+  async optimizeCacheStrategy(apiId: string): Promise<{
+    cacheExpiry: number;
+    priorityScore: number;
+    recommendedRefreshInterval: number;
+  }> {
+    try {
+      const { data: usageData } = await this.supabase
+        .from('api_usage_patterns')
+        .select('*')
+        .eq('api_id', apiId)
+        .gte('access_time', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+        .order('access_time', { ascending: false });
+
+      if (!usageData?.length) {
+        return { cacheExpiry: 3600, priorityScore: 50, recommendedRefreshInterval: 1800 };
+      }
+
+      // Calculate usage frequency
+      const accessCount = usageData.length;
+      const uniqueHours = new Set(usageData.map(d => d.hour_of_day)).size;
+      const avgAccessesPerHour = accessCount / (7 * 24);
+
+      // High usage = shorter cache expiry, more frequent updates
+      const priorityScore = Math.min(100, (avgAccessesPerHour * 10));
+      const cacheExpiry = Math.max(300, 3600 - (priorityScore * 30));
+      const recommendedRefreshInterval = Math.max(300, cacheExpiry / 2);
+
+      return { cacheExpiry, priorityScore, recommendedRefreshInterval };
+    } catch (error) {
+      console.error('Error optimizing cache strategy:', error);
+      return { cacheExpiry: 3600, priorityScore: 50, recommendedRefreshInterval: 1800 };
+    }
+  }
+}
+
+/**
+ * Level 3: AI-Powered Data Enhancement
+ */
+class AIDataEnhancement {
+  private openaiApiKey: string | undefined;
+
+  constructor() {
+    this.openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+  }
+
+  // Enhanced price tracking and history
+  async enhancePriceData(priceString: string, productTitle: string): Promise<{
+    normalizedPrice: number;
+    currency: string;
+    priceHistory?: any[];
+    marketComparison?: string;
+  }> {
+    try {
+      // Extract numeric price and currency
+      const priceMatch = priceString.match(/[\$€£¥]?\s?(\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?)/);
+      const currencyMatch = priceString.match(/[\$€£¥]|USD|EUR|GBP|JPY/);
+      
+      if (!priceMatch) {
+        return { normalizedPrice: 0, currency: 'USD' };
+      }
+
+      const normalizedPrice = parseFloat(priceMatch[1].replace(/[.,]/g, '.'));
+      const currency = currencyMatch?.[0] || 'USD';
+
+      // Price analysis using AI if available
+      let marketComparison;
+      if (this.openaiApiKey && productTitle) {
+        try {
+          const response = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${this.openaiApiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'gpt-4o-mini',
+              messages: [{
+                role: 'user',
+                content: `Analyze this product price: "${productTitle}" costs ${priceString}. Is this price reasonable for this type of product? Provide a brief market analysis in 1-2 sentences.`
+              }],
+              max_tokens: 100
+            }),
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            marketComparison = data.choices[0]?.message?.content;
+          }
+        } catch (error) {
+          console.error('AI price analysis failed:', error);
+        }
+      }
+
+      return {
+        normalizedPrice,
+        currency,
+        marketComparison
+      };
+    } catch (error) {
+      console.error('Error enhancing price data:', error);
+      return { normalizedPrice: 0, currency: 'USD' };
+    }
+  }
+
+  // Sentiment analysis for reviews and comments
+  async analyzeSentiment(text: string): Promise<{
+    sentiment: 'positive' | 'negative' | 'neutral';
+    confidence: number;
+    keywords: string[];
+  }> {
+    try {
+      if (!this.openaiApiKey || !text.trim()) {
+        return { sentiment: 'neutral', confidence: 0.5, keywords: [] };
+      }
+
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.openaiApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [{
+            role: 'user',
+            content: `Analyze the sentiment of this text and extract key emotional words: "${text.substring(0, 500)}". 
+                     Return only a JSON object with: {"sentiment": "positive/negative/neutral", "confidence": 0.0-1.0, "keywords": ["word1", "word2"]}`
+          }],
+          max_tokens: 150
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const analysisText = data.choices[0]?.message?.content;
+        
+        try {
+          const analysis = JSON.parse(analysisText);
+          return {
+            sentiment: analysis.sentiment || 'neutral',
+            confidence: analysis.confidence || 0.5,
+            keywords: analysis.keywords || []
+          };
+        } catch (parseError) {
+          console.error('Failed to parse sentiment analysis:', parseError);
+        }
+      }
+    } catch (error) {
+      console.error('Error analyzing sentiment:', error);
+    }
+
+    return { sentiment: 'neutral', confidence: 0.5, keywords: [] };
+  }
+
+  // Content summarization for long articles
+  async summarizeContent(content: string, maxLength: number = 200): Promise<{
+    summary: string;
+    keyPoints: string[];
+    readingTime: number;
+  }> {
+    try {
+      const wordCount = content.split(/\s+/).length;
+      const readingTime = Math.ceil(wordCount / 200); // Average reading speed
+
+      if (!this.openaiApiKey || content.length < 500) {
+        return {
+          summary: content.substring(0, maxLength) + (content.length > maxLength ? '...' : ''),
+          keyPoints: [],
+          readingTime
+        };
+      }
+
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.openaiApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [{
+            role: 'user',
+            content: `Summarize this content in ${maxLength} characters or less and extract 3-5 key points: "${content.substring(0, 2000)}". 
+                     Return JSON: {"summary": "...", "keyPoints": ["point1", "point2"]}`
+          }],
+          max_tokens: 300
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const analysisText = data.choices[0]?.message?.content;
+        
+        try {
+          const analysis = JSON.parse(analysisText);
+          return {
+            summary: analysis.summary || content.substring(0, maxLength),
+            keyPoints: analysis.keyPoints || [],
+            readingTime
+          };
+        } catch (parseError) {
+          console.error('Failed to parse content summary:', parseError);
+        }
+      }
+    } catch (error) {
+      console.error('Error summarizing content:', error);
+    }
+
+    const wordCount = content.split(/\s+/).length;
+    return {
+      summary: content.substring(0, maxLength) + (content.length > maxLength ? '...' : ''),
+      keyPoints: [],
+      readingTime: Math.ceil(wordCount / 200)
+    };
+  }
+
+  // Duplicate detection and deduplication
+  static detectDuplicates(items: any[]): {
+    uniqueItems: any[];
+    duplicateGroups: any[][];
+    deduplicationStats: { original: number; unique: number; duplicatesRemoved: number };
+  } {
+    const uniqueItems: any[] = [];
+    const duplicateGroups: any[][] = [];
+    const seenTitles = new Map<string, number>();
+
+    for (const item of items) {
+      if (!item.title) {
+        uniqueItems.push(item);
+        continue;
+      }
+
+      // Normalize title for comparison
+      const normalizedTitle = item.title.toLowerCase()
+        .replace(/[^\w\s]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      const existingIndex = seenTitles.get(normalizedTitle);
+      
+      if (existingIndex !== undefined) {
+        // Found duplicate
+        const existingGroup = duplicateGroups.find(group => 
+          group.some(groupItem => groupItem === uniqueItems[existingIndex])
+        );
+        
+        if (existingGroup) {
+          existingGroup.push(item);
+        } else {
+          duplicateGroups.push([uniqueItems[existingIndex], item]);
+        }
+      } else {
+        // New unique item
+        seenTitles.set(normalizedTitle, uniqueItems.length);
+        uniqueItems.push(item);
+      }
+    }
+
+    return {
+      uniqueItems,
+      duplicateGroups,
+      deduplicationStats: {
+        original: items.length,
+        unique: uniqueItems.length,
+        duplicatesRemoved: items.length - uniqueItems.length
+      }
+    };
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -690,8 +1077,16 @@ serve(async (req) => {
       })
     }
 
-    // Level 2: Advanced Browser Automation
-    console.log(`Starting Level 2 advanced scraping for ${api.source_url}...`);
+    // Level 3: Initialize enhanced systems
+    console.log(`Starting Level 3 enhanced scraping for ${api.source_url}...`);
+    const realTimeSync = new RealTimeDataSync(supabaseAdmin);
+    const predictiveCache = new PredictiveCaching(supabaseAdmin);
+    const aiEnhancement = new AIDataEnhancement();
+    
+    // Record usage pattern for predictive caching
+    const userLocation = req.headers.get('cf-ipcountry') || 'unknown';
+    await predictiveCache.recordUsagePattern(randomId, endpointPath, {}, userLocation);
+
     const browserAutomation = new AdvancedBrowserAutomation();
     
     try {
@@ -712,7 +1107,11 @@ serve(async (req) => {
       // Get final page content
       const html = await browserAutomation.getPageContent();
       
-      console.log(`Advanced scraping completed. SPA: ${isSPA}, Forms: ${formData.length}, WebSockets: ${websocketUrls.length}`);
+      // Level 3: Content change detection
+      const contentHash = RealTimeDataSync.generateContentHash(html);
+      const changeDetection = await realTimeSync.detectChanges(randomId, contentHash);
+      
+      console.log(`Level 3 scraping completed. Changes: ${changeDetection.changeType}, SPA: ${isSPA}, Forms: ${formData.length}, WebSockets: ${websocketUrls.length}`);
       
       // AI-Powered Content Analysis
       const $ = cheerio.load(html)
@@ -758,14 +1157,46 @@ serve(async (req) => {
         }
       });
 
+      // Level 3: AI-Powered Data Enhancement
+      const enhancedItems = [];
+      for (const item of items.slice(0, 20)) { // Limit to 20 for performance
+        const enhanced = { ...item };
+
+        // Enhance price data
+        if (item.price) {
+          const priceEnhancement = await aiEnhancement.enhancePriceData(item.price, item.title);
+          enhanced._price_analysis = priceEnhancement;
+        }
+
+        // Sentiment analysis for descriptions/reviews
+        if (item.description && item.description.length > 50) {
+          const sentiment = await aiEnhancement.analyzeSentiment(item.description);
+          enhanced._sentiment_analysis = sentiment;
+        }
+
+        // Content summarization for long content
+        if (item.description && item.description.length > 300) {
+          const summary = await aiEnhancement.summarizeContent(item.description);
+          enhanced._content_summary = summary;
+        }
+
+        enhancedItems.push(enhanced);
+      }
+
+      // Level 3: Duplicate detection and deduplication
+      const deduplicationResult = AIDataEnhancement.detectDuplicates(enhancedItems);
+
       // Level 2: GraphQL Schema Generation
       const graphqlSchema = GraphQLSchemaGenerator.generateTypeDefinitions(
         pageClassification.pageType, 
-        items
+        deduplicationResult.uniqueItems
       );
 
-      // Enhanced structured data response
-      if (items.length > 2) {
+      // Level 3: Cache optimization
+      const cacheStrategy = await predictiveCache.optimizeCacheStrategy(randomId);
+
+      // Enhanced structured data response with Level 3 features
+      if (deduplicationResult.uniqueItems.length > 2) {
         extractedData = {
           data: {
             page_title: $('title').text(),
@@ -774,11 +1205,11 @@ serve(async (req) => {
             detected_entities: pageClassification.entities,
             detected_patterns: pageClassification.patterns,
             behavioral_analysis: behaviorAnalysis,
-            item_count: items.length,
-            items: items,
+            item_count: deduplicationResult.uniqueItems.length,
+            items: deduplicationResult.uniqueItems,
           },
           source_url: api.source_url,
-          _extraction_method: 'level_2_advanced_automation',
+          _extraction_method: 'level_3_ai_enhanced',
           _semantic_api: {
             endpoint: semanticEndpoint.endpoint,
             entity_name: semanticEndpoint.entityName,
@@ -793,6 +1224,26 @@ serve(async (req) => {
             infinite_scroll_applied: true,
             session_management: true
           },
+          _level_3_enhancements: {
+            real_time_sync: {
+              content_hash: contentHash,
+              change_detected: changeDetection.hasChanged,
+              change_type: changeDetection.changeType,
+              sync_status: 'active'
+            },
+            ai_data_enhancement: {
+              items_enhanced: enhancedItems.length,
+              sentiment_analyzed: enhancedItems.filter(item => item._sentiment_analysis).length,
+              content_summarized: enhancedItems.filter(item => item._content_summary).length,
+              price_analyzed: enhancedItems.filter(item => item._price_analysis).length
+            },
+            deduplication: deduplicationResult.deduplicationStats,
+            predictive_caching: {
+              cache_expiry: cacheStrategy.cacheExpiry,
+              priority_score: cacheStrategy.priorityScore,
+              refresh_interval: cacheStrategy.recommendedRefreshInterval
+            }
+          },
           _classification_metadata: {
             page_type: pageClassification.pageType,
             confidence: pageClassification.confidence,
@@ -801,8 +1252,8 @@ serve(async (req) => {
           }
         }
       } else {
-        // Enhanced fallback with Level 2 insights
-        console.log("Advanced extraction yielded few results, using enhanced fallback.");
+        // Enhanced fallback with Level 3 insights
+        console.log("Level 3 extraction yielded few results, using enhanced fallback.");
         const title = $('title').text()
         const headings = $('h1, h2, h3').map((_, el) => $(el).text()).get()
         const links = $('a').map((_, el) => $(el).attr('href')).get().filter(Boolean)
@@ -820,7 +1271,7 @@ serve(async (req) => {
             images,
           },
           source_url: api.source_url,
-          _extraction_method: 'level_2_enhanced_fallback',
+          _extraction_method: 'level_3_enhanced_fallback',
           _semantic_api: {
             endpoint: semanticEndpoint.endpoint,
             entity_name: semanticEndpoint.entityName,
@@ -833,6 +1284,14 @@ serve(async (req) => {
             forms_analyzed: formData.length,
             websocket_connections: websocketUrls
           },
+          _level_3_enhancements: {
+            real_time_sync: {
+              content_hash: contentHash,
+              change_detected: changeDetection.hasChanged,
+              change_type: changeDetection.changeType
+            },
+            predictive_caching: cacheStrategy
+          },
           _classification_metadata: {
             page_type: pageClassification.pageType,
             confidence: pageClassification.confidence,
@@ -841,9 +1300,25 @@ serve(async (req) => {
         }
       }
 
+      // Level 3: Store content snapshot and notify if changed
+      await realTimeSync.storeContentSnapshot(randomId, contentHash, extractedData);
+      
+      if (changeDetection.hasChanged) {
+        await realTimeSync.notifyConsumers(randomId, changeDetection.changeType, {
+          items_count: items.length,
+          change_summary: `${changeDetection.changeType} content detected`
+        });
+      }
+
       return new Response(JSON.stringify(extractedData, null, 2), {
         status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json',
+          'Cache-Control': `max-age=${cacheStrategy.cacheExpiry}`,
+          'X-Content-Hash': contentHash,
+          'X-Change-Type': changeDetection.changeType
+        },
       })
       
     } finally {
@@ -851,7 +1326,7 @@ serve(async (req) => {
     }
 
   } catch (error) {
-    console.error('Level 2 Enhancement Error:', error)
+    console.error('Level 3 Enhancement Error:', error)
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -20,38 +20,267 @@ interface AdvancedApiFeaturesProps {
       infinite_scroll_applied: boolean;
       session_management: boolean;
     };
+    _level_3_enhancements?: {
+      real_time_sync?: {
+        content_hash: string;
+        change_detected: boolean;
+        change_type: string;
+        sync_status?: string;
+      };
+      ai_data_enhancement?: {
+        items_enhanced: number;
+        sentiment_analyzed: number;
+        content_summarized: number;
+        price_analyzed: number;
+      };
+      deduplication?: {
+        original: number;
+        unique: number;
+        duplicatesRemoved: number;
+      };
+      predictive_caching?: {
+        cache_expiry: number;
+        priority_score: number;
+        refresh_interval: number;
+      };
+    };
     data?: {
       page_type: string;
       confidence_score: number;
       detected_entities: string[];
       item_count: number;
+      items?: any[];
     };
   };
 }
 
 const AdvancedApiFeatures = ({ apiData }: AdvancedApiFeaturesProps) => {
-  const { _semantic_api, _graphql_schema, _advanced_features, data } = apiData;
+  const { _semantic_api, _graphql_schema, _advanced_features, _level_3_enhancements, data } = apiData;
 
-  if (!_semantic_api && !_graphql_schema && !_advanced_features) {
+  if (!_semantic_api && !_graphql_schema && !_advanced_features && !_level_3_enhancements) {
     return null;
   }
+
+  const hasLevel3Features = !!_level_3_enhancements;
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            🚀 Level 2: Advanced API Features
-            <Badge variant="secondary">AI-Powered</Badge>
+            {hasLevel3Features ? (
+              <>
+                🚀 Level 3: AI-Enhanced Real-Time API
+                <Badge variant="default">AI-Powered + Real-Time</Badge>
+              </>
+            ) : (
+              <>
+                🚀 Level 2: Advanced API Features
+                <Badge variant="secondary">AI-Powered</Badge>
+              </>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="semantic" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+          <Tabs defaultValue={hasLevel3Features ? "realtime" : "semantic"} className="w-full">
+            <TabsList className={`grid w-full ${hasLevel3Features ? 'grid-cols-5' : 'grid-cols-3'}`}>
+              {hasLevel3Features && <TabsTrigger value="realtime">Real-Time Sync</TabsTrigger>}
+              {hasLevel3Features && <TabsTrigger value="ai-enhancement">AI Enhancement</TabsTrigger>}
               <TabsTrigger value="semantic">Semantic API</TabsTrigger>
               <TabsTrigger value="graphql">GraphQL Schema</TabsTrigger>
               <TabsTrigger value="automation">Browser Automation</TabsTrigger>
             </TabsList>
+
+            {hasLevel3Features && (
+              <TabsContent value="realtime" className="space-y-4">
+                {_level_3_enhancements?.real_time_sync && (
+                  <>
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm">Change Detection</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <Badge variant={_level_3_enhancements.real_time_sync.change_detected ? "default" : "secondary"}>
+                            {_level_3_enhancements.real_time_sync.change_type}
+                          </Badge>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Content monitoring active
+                          </p>
+                        </CardContent>
+                      </Card>
+
+                      <Card>
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-sm">Sync Status</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <Badge variant="default">
+                            {_level_3_enhancements.real_time_sync.sync_status || 'Active'}
+                          </Badge>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Real-time updates enabled
+                          </p>
+                        </CardContent>
+                      </Card>
+                    </div>
+
+                    <div>
+                      <h4 className="font-semibold mb-2">Content Hash</h4>
+                      <CodeBlock code={_level_3_enhancements.real_time_sync.content_hash} />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Used for detecting content changes and differential updates
+                      </p>
+                    </div>
+
+                    {_level_3_enhancements.predictive_caching && (
+                      <div className="grid grid-cols-3 gap-4 mt-4">
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm">Cache Strategy</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-lg font-bold">{_level_3_enhancements.predictive_caching.cache_expiry}s</div>
+                            <p className="text-xs text-muted-foreground">Cache expiry</p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm">Priority Score</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-lg font-bold">{_level_3_enhancements.predictive_caching.priority_score}/100</div>
+                            <p className="text-xs text-muted-foreground">Usage priority</p>
+                          </CardContent>
+                        </Card>
+                        <Card>
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-sm">Refresh Interval</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="text-lg font-bold">{_level_3_enhancements.predictive_caching.refresh_interval}s</div>
+                            <p className="text-xs text-muted-foreground">Auto-refresh</p>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    )}
+                  </>
+                )}
+              </TabsContent>
+            )}
+
+            {hasLevel3Features && (
+              <TabsContent value="ai-enhancement" className="space-y-4">
+                {_level_3_enhancements?.ai_data_enhancement && (
+                  <>
+                    <div className="grid grid-cols-2 gap-4 mb-4">
+                      <div>
+                        <h4 className="font-semibold mb-2">AI Enhancement Stats</h4>
+                        <div className="space-y-2">
+                          <div className="flex justify-between">
+                            <span className="text-sm">Items Enhanced:</span>
+                            <Badge variant="outline">{_level_3_enhancements.ai_data_enhancement.items_enhanced}</Badge>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-sm">Sentiment Analyzed:</span>
+                            <Badge variant="outline">{_level_3_enhancements.ai_data_enhancement.sentiment_analyzed}</Badge>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-sm">Content Summarized:</span>
+                            <Badge variant="outline">{_level_3_enhancements.ai_data_enhancement.content_summarized}</Badge>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-sm">Price Analyzed:</span>
+                            <Badge variant="outline">{_level_3_enhancements.ai_data_enhancement.price_analyzed}</Badge>
+                          </div>
+                        </div>
+                      </div>
+
+                      {_level_3_enhancements.deduplication && (
+                        <div>
+                          <h4 className="font-semibold mb-2">Deduplication Results</h4>
+                          <div className="space-y-2">
+                            <div className="flex justify-between">
+                              <span className="text-sm">Original Items:</span>
+                              <Badge variant="secondary">{_level_3_enhancements.deduplication.original}</Badge>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-sm">Unique Items:</span>
+                              <Badge variant="default">{_level_3_enhancements.deduplication.unique}</Badge>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-sm">Duplicates Removed:</span>
+                              <Badge variant="destructive">{_level_3_enhancements.deduplication.duplicatesRemoved}</Badge>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {data?.items && data.items.length > 0 && (
+                      <div>
+                        <h4 className="font-semibold mb-2">Enhanced Data Sample</h4>
+                        <div className="grid gap-4">
+                          {data.items.slice(0, 2).map((item, idx) => (
+                            <Card key={idx}>
+                              <CardContent className="pt-4">
+                                <div className="space-y-2">
+                                  <h5 className="font-medium">{item.title || 'Untitled Item'}</h5>
+                                  
+                                  {item._sentiment_analysis && (
+                                    <div className="flex items-center gap-2">
+                                      <Badge variant={
+                                        item._sentiment_analysis.sentiment === 'positive' ? 'default' :
+                                        item._sentiment_analysis.sentiment === 'negative' ? 'destructive' : 'secondary'
+                                      }>
+                                        {item._sentiment_analysis.sentiment} ({Math.round(item._sentiment_analysis.confidence * 100)}%)
+                                      </Badge>
+                                      {item._sentiment_analysis.keywords.length > 0 && (
+                                        <div className="flex gap-1">
+                                          {item._sentiment_analysis.keywords.slice(0, 3).map((keyword, kidx) => (
+                                            <Badge key={kidx} variant="outline" className="text-xs">{keyword}</Badge>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                  
+                                  {item._price_analysis && (
+                                    <div className="text-sm text-muted-foreground">
+                                      <div>Normalized Price: {item._price_analysis.normalizedPrice} {item._price_analysis.currency}</div>
+                                      {item._price_analysis.marketComparison && (
+                                        <div className="mt-1 italic">"{item._price_analysis.marketComparison}"</div>
+                                      )}
+                                    </div>
+                                  )}
+                                  
+                                  {item._content_summary && (
+                                    <div className="text-sm">
+                                      <div className="font-medium">Summary:</div>
+                                      <div className="text-muted-foreground">{item._content_summary.summary}</div>
+                                      <div className="flex items-center gap-2 mt-1">
+                                        <Badge variant="outline" className="text-xs">
+                                          {item._content_summary.readingTime} min read
+                                        </Badge>
+                                        {item._content_summary.keyPoints.length > 0 && (
+                                          <Badge variant="outline" className="text-xs">
+                                            {item._content_summary.keyPoints.length} key points
+                                          </Badge>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </TabsContent>
+            )}
 
             <TabsContent value="semantic" className="space-y-4">
               {_semantic_api && (

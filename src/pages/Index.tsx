@@ -1,8 +1,8 @@
-
 import { useState } from 'react';
 import Header from '@/components/Header';
 import CodeBlock from '@/components/CodeBlock';
 import AdvancedApiFeatures from '@/components/AdvancedApiFeatures';
+import RealTimeNotifications from '@/components/RealTimeNotifications';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -120,7 +120,8 @@ const Index = () => {
           Create an API from any website
         </h2>
         <p className="max-w-2xl text-lg md:text-xl text-muted-foreground mb-8">
-          Enter a URL, and we'll give you a structured API to access its content. No-code, no-hassle, instant results.
+          Enter a URL, and we'll give you a structured API to access its content. 
+          Now with Level 3 AI enhancement, real-time sync, and intelligent data processing.
         </p>
 
         <form onSubmit={handleGenerateApi} className="w-full max-w-xl flex items-center gap-2 mb-8">
@@ -152,8 +153,21 @@ const Index = () => {
         {isLoading && (
            <div className="flex flex-col items-center gap-4">
             <LoaderCircle className="h-12 w-12 animate-spin text-primary" />
-            <p className="text-muted-foreground">Crafting your API with Level 2 intelligence... this might take a moment.</p>
+            <p className="text-muted-foreground">Crafting your API with Level 3 AI intelligence... this might take a moment.</p>
+            <div className="text-sm text-muted-foreground max-w-md">
+              <p>🤖 AI is analyzing content patterns and entities</p>
+              <p>🔄 Setting up real-time synchronization</p>
+              <p>🧠 Enhancing data with sentiment analysis</p>
+              <p>🚀 Generating smart GraphQL schema</p>
+            </div>
            </div>
+        )}
+
+        {/* Show real-time notifications for logged-in users */}
+        {user && !isLoading && (
+          <div className="w-full max-w-4xl mb-6">
+            <RealTimeNotifications />
+          </div>
         )}
 
         {apiResult && (
