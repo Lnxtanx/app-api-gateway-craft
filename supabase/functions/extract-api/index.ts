@@ -2,6 +2,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import * as cheerio from 'https://esm.sh/cheerio@1.0.0-rc.12'
+import puppeteer, { Browser } from 'https://deno.land/x/puppeteer@16.2.0/mod.ts'
 import { corsHeaders } from '../_shared/cors.ts'
 
 serve(async (req) => {
@@ -55,12 +56,27 @@ serve(async (req) => {
       })
     }
 
-    // 4. Scrape the source URL
-    const scrapeResponse = await fetch(api.source_url)
-    if (!scrapeResponse.ok) {
-      throw new Error(`Failed to fetch source URL: ${scrapeResponse.statusText}`)
+    // 4. Scrape the source URL with a headless browser (Puppeteer)
+    console.log(`Scraping ${api.source_url} with Puppeteer...`);
+    let browser: Browser | null = null;
+    let html: string;
+    try {
+      browser = await puppeteer.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      });
+      const page = await browser.newPage();
+      await page.goto(api.source_url, { waitUntil: 'networkidle2', timeout: 30000 });
+      html = await page.content();
+      console.log(`Successfully scraped content from ${api.source_url}`);
+    } catch (scrapeError) {
+        console.error('Puppeteer scraping error:', scrapeError);
+        throw new Error(`Failed to scrape source URL with headless browser: ${scrapeError.message}`);
+    } finally {
+        if (browser) {
+            await browser.close();
+        }
     }
-    const html = await scrapeResponse.text()
 
     // 5. Parse with Cheerio and extract data
     const $ = cheerio.load(html)
