@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import * as cheerio from 'https://esm.sh/cheerio@1.0.0-rc.12'
@@ -21,9 +22,19 @@ function extractItemData(element: cheerio.Cheerio<cheerio.Element>, $: cheerio.C
   const priceText = getText('[class*="price"], [id*="price"], [itemprop="price"], [itemprop="offers"]');
   const price = priceText ? (priceText.match(/[\$€£]?\s?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?/)?.[0] || null) : null;
 
-  // Only return an object if it has some meaningful content
-  if (title || link || image) {
-    return { title, link, image, description, price };
+  // --- NEW: Extract author and date (simple NER) ---
+  const author = getText('[class*="author"], [class*="byline"], [rel="author"], [itemprop="author"]');
+  const date = getAttr('time', 'datetime') || getText('time, [class*="date"], [itemprop="datePublished"]');
+  // --- END NEW ---
+
+  const item: { [key: string]: string | null } = { title, link, image, description, price, author, date };
+
+  // Remove null/undefined properties for a cleaner output
+  Object.keys(item).forEach(key => (item[key] == null) && delete item[key]);
+
+  // Only return an object if it has some meaningful content (a title, link, or image)
+  if (item.title || item.link || item.image) {
+    return item;
   }
   return null;
 }
@@ -178,3 +189,4 @@ serve(async (req) => {
     })
   }
 })
+
