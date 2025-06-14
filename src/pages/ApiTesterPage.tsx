@@ -16,6 +16,7 @@ const ApiTesterPage = () => {
   const [method, setMethod] = useState('GET');
   const [body, setBody] = useState('');
   const [response, setResponse] = useState<any>(null);
+  const [responseMeta, setResponseMeta] = useState<{ status: number; statusText: string; headers: Record<string, string> } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -23,6 +24,7 @@ const ApiTesterPage = () => {
     e.preventDefault();
     setLoading(true);
     setResponse(null);
+    setResponseMeta(null);
     setError(null);
 
     if (!endpoint.startsWith('http')) {
@@ -32,19 +34,21 @@ const ApiTesterPage = () => {
     }
 
     try {
+      const headers: HeadersInit = {};
+      if (apiKey) {
+        headers['Authorization'] = `Bearer ${apiKey}`;
+      }
+
       const fetchOptions: RequestInit = {
         method,
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
+        headers,
       };
 
       if (['POST', 'PUT', 'PATCH'].includes(method) && body) {
         try {
-          // Validate that body is a valid JSON
-          JSON.parse(body);
+          JSON.parse(body); // Validate JSON
           fetchOptions.body = body;
+          headers['Content-Type'] = 'application/json';
         } catch (jsonError) {
           setError('Request body contains invalid JSON.');
           setLoading(false);
@@ -53,17 +57,41 @@ const ApiTesterPage = () => {
       }
 
       const res = await fetch(endpoint, fetchOptions);
+      
+      const responseHeaders: Record<string, string> = {};
+      res.headers.forEach((value, key) => {
+        responseHeaders[key] = value;
+      });
+      setResponseMeta({ status: res.status, statusText: res.statusText, headers: responseHeaders });
 
-      const data = await res.json();
+      const responseText = await res.text();
+      let responseData: any;
+
+      if (responseText) {
+        try {
+          responseData = JSON.parse(responseText);
+        } catch (e) {
+          responseData = responseText;
+        }
+      }
 
       if (!res.ok) {
-        const errorMessage = data?.error?.message || data?.message || JSON.stringify(data);
+        const errorMessage = (typeof responseData === 'object' && responseData !== null && (responseData.error?.message || responseData.message))
+          ? (responseData.error?.message || responseData.message)
+          : (typeof responseData === 'string' && responseData) ? responseData : `Request failed: ${res.status} ${res.statusText}`;
         throw new Error(errorMessage);
       }
 
-      setResponse(data);
+      if (responseData) {
+        setResponse(responseData);
+      }
+
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch API. Check the endpoint and network connection.');
+      if (err.name === 'TypeError' && err.message.includes('fetch')) {
+        setError('Failed to fetch. This could be due to a network error or a CORS policy blocking the request from the browser. Check the browser console (F12 -> Console) for more details.');
+      } else {
+        setError(err.message || 'An unknown error occurred.');
+      }
     } finally {
       setLoading(false);
     }
@@ -144,21 +172,40 @@ const ApiTesterPage = () => {
               </form>
               
               <div className="mt-6 space-y-4">
-                {response && (
-                  <div>
-                    <h3 className="text-lg font-semibold mb-2 text-green-600">Success Response</h3>
-                    <div className="bg-muted rounded-md p-4 max-h-96 overflow-auto">
-                      <CodeBlock code={JSON.stringify(response, null, 2)} />
-                    </div>
-                  </div>
-                )}
-
                 {error && (
                   <div>
                     <h3 className="text-lg font-semibold mb-2 text-destructive">Error</h3>
                     <div className="bg-destructive/10 text-destructive rounded-md p-4 flex items-start gap-2">
                       <AlertCircle className="h-5 w-5 mt-0.5 shrink-0" />
                       <pre className="whitespace-pre-wrap font-mono text-sm">{error}</pre>
+                    </div>
+                  </div>
+                )}
+                
+                {responseMeta && (
+                  <div>
+                    <h3 className={`text-lg font-semibold mb-2 ${responseMeta.status >= 400 ? 'text-destructive' : 'text-primary'}`}>
+                      Response
+                    </h3>
+                    <div className="space-y-4 rounded-md border p-4">
+                      <div>
+                        <div className={`font-semibold ${responseMeta.status >= 400 ? 'text-destructive' : 'text-green-600'}`}>
+                          Status: {responseMeta.status} {responseMeta.statusText}
+                        </div>
+                        <h4 className="font-semibold mt-4 mb-2">Headers</h4>
+                        <div className="bg-muted rounded-md max-h-48 overflow-auto">
+                           <CodeBlock code={Object.entries(responseMeta.headers).map(([key, value]) => `${key}: ${value}`).join('\n')} />
+                        </div>
+                      </div>
+                      
+                      {response && (
+                        <div>
+                          <h4 className="font-semibold mt-4 mb-2">Body</h4>
+                          <div className="bg-muted rounded-md max-h-96 overflow-auto">
+                             <CodeBlock code={typeof response === 'object' ? JSON.stringify(response, null, 2) : String(response)} />
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
