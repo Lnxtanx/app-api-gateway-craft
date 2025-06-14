@@ -239,7 +239,7 @@ export class DataQualityAssuranceEngine {
     const rules = this.FIELD_VALIDATION_RULES[websiteType] || [];
     
     return data.map(record => {
-      const cleaned = { ...record };
+      let cleaned = { ...record };
       
       rules.forEach(rule => {
         if (rule.autoFix) {
