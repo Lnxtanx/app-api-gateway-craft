@@ -1,12 +1,11 @@
-
 import React from 'react';
-import { useAuthContext } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import StealthScrapingInterface from '@/components/StealthScrapingInterface';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Shield, Zap, Globe, Brain } from 'lucide-react';
 
 export default function StealthScrapingPage() {
-  const { user } = useAuthContext();
+  const { user } = useAuth();
 
   if (!user) {
     return (

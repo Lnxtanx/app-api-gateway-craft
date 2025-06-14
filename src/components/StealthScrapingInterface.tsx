@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -471,7 +470,7 @@ export default function StealthScrapingInterface() {
                   {job.metadata && (
                     <div className="flex items-center gap-2">
                       {job.metadata.captcha_encountered && (
-                        <AlertCircle className="h-4 w-4 text-orange-500" title="CAPTCHA encountered" />
+                        <AlertCircle className="h-4 w-4 text-orange-500" />
                       )}
                       <span className="text-xs text-muted-foreground">
                         {job.metadata.profile_used}

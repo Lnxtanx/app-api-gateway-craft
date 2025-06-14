@@ -1,13 +1,13 @@
 
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { useAuthContext } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { LogOut, User, Zap, Shield, Activity, TestTube } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Header() {
-  const { user } = useAuthContext();
+  const { user } = useAuth();
   const location = useLocation();
   const { toast } = useToast();
 
