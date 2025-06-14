@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/cors.ts'
@@ -43,7 +42,8 @@ serve(async (req) => {
     // Generate new API details
     const randomId = crypto.randomUUID().split('-')[0];
     const generatedApiKey = `ac_live_${crypto.randomUUID().replace(/-/g, '')}`;
-    const generatedEndpoint = `https://api.apicraft.dev/v1/extract/${randomId}`;
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const generatedEndpoint = `${supabaseUrl}/functions/v1/extract-api/${randomId}`;
     
     // Insert the new API into the database
     const { data: newApi, error } = await supabaseAdmin

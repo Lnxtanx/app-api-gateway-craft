@@ -44,7 +44,7 @@ const Index = () => {
     setApiResult(null);
 
     try {
-      const { data, error } = await supabase.functions.invoke('generate-api', {
+      const { data: generatedApiData, error } = await supabase.functions.invoke('generate-api', {
         body: { source_url: url },
       });
 
@@ -52,22 +52,30 @@ const Index = () => {
         throw new Error(error.message);
       }
       
-      if (data.error) {
-        throw new Error(data.error);
+      if (generatedApiData.error) {
+        throw new Error(generatedApiData.error);
       }
 
+      // Fetch initial data from the new endpoint to show a real example
+      const initialScrapeResponse = await fetch(generatedApiData.api_endpoint, {
+        headers: {
+          'Authorization': `Bearer ${generatedApiData.api_key}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!initialScrapeResponse.ok) {
+        const errData = await initialScrapeResponse.json();
+        throw new Error(`API call failed: ${errData.error || initialScrapeResponse.statusText}`);
+      }
+      
+      const scrapedData = await initialScrapeResponse.json();
+
       const result = {
-        endpoint: data.api_endpoint,
-        apiKey: data.api_key,
-        curl: `curl "${data.api_endpoint}" \\\n  -H "Authorization: Bearer ${data.api_key}"`,
-        response: JSON.stringify({
-          data: {
-            title: "Example Scraped Data",
-            content: "This is some sample content extracted from the target website.",
-            timestamp: new Date().toISOString(),
-          },
-          source_url: url,
-        }, null, 2),
+        endpoint: generatedApiData.api_endpoint,
+        apiKey: generatedApiData.api_key,
+        curl: `curl "${generatedApiData.api_endpoint}" \\\n  -H "Authorization: Bearer ${generatedApiData.api_key}"`,
+        response: JSON.stringify(scrapedData, null, 2),
       };
       
       setApiResult(result);
