@@ -9,6 +9,7 @@ import CodeBlock from '@/components/CodeBlock';
 import { LoaderCircle, AlertCircle } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { supabase } from '@/integrations/supabase/client';
 
 const ApiTesterPage = () => {
   const [endpoint, setEndpoint] = useState('');
@@ -34,20 +35,14 @@ const ApiTesterPage = () => {
     }
 
     try {
-      const headers: HeadersInit = {};
+      const headers: Record<string, string> = {};
       if (apiKey) {
         headers['Authorization'] = `Bearer ${apiKey}`;
       }
 
-      const fetchOptions: RequestInit = {
-        method,
-        headers,
-      };
-
       if (['POST', 'PUT', 'PATCH'].includes(method) && body) {
         try {
-          JSON.parse(body); // Validate JSON
-          fetchOptions.body = body;
+          JSON.parse(body); // Validate JSON for user feedback
           headers['Content-Type'] = 'application/json';
         } catch (jsonError) {
           setError('Request body contains invalid JSON.');
@@ -56,30 +51,42 @@ const ApiTesterPage = () => {
         }
       }
 
-      const res = await fetch(endpoint, fetchOptions);
-      
-      const responseHeaders: Record<string, string> = {};
-      res.headers.forEach((value, key) => {
-        responseHeaders[key] = value;
+      // Call the 'api-proxy' edge function instead of fetch
+      const { data: proxyResponse, error: functionError } = await supabase.functions.invoke('api-proxy', {
+        body: {
+          method,
+          url: endpoint,
+          headers,
+          body: body || null,
+        },
       });
-      setResponseMeta({ status: res.status, statusText: res.statusText, headers: responseHeaders });
 
-      const responseText = await res.text();
+      if (functionError) {
+        throw new Error(functionError.message);
+      }
+      
+      if (proxyResponse.error) {
+        throw new Error(proxyResponse.error);
+      }
+
+      const { status, statusText, headers: responseHeaders, body: responseBodyText } = proxyResponse;
+      
+      setResponseMeta({ status, statusText, headers: responseHeaders });
+
       let responseData: any;
-
-      if (responseText) {
+      if (responseBodyText) {
         try {
-          responseData = JSON.parse(responseText);
+          responseData = JSON.parse(responseBodyText);
         } catch (e) {
-          responseData = responseText;
+          responseData = responseBodyText;
         }
       }
 
-      if (!res.ok) {
+      if (status >= 400) {
         const errorMessage = (typeof responseData === 'object' && responseData !== null && (responseData.error?.message || responseData.message))
           ? (responseData.error?.message || responseData.message)
-          : (typeof responseData === 'string' && responseData) ? responseData : `Request failed: ${res.status} ${res.statusText}`;
-        throw new Error(errorMessage);
+          : (typeof responseData === 'string' && responseData) ? responseData : `Request failed: ${status} ${statusText}`;
+        setError(errorMessage); // Use setError to display API errors, not throw
       }
 
       if (responseData) {
@@ -87,11 +94,8 @@ const ApiTesterPage = () => {
       }
 
     } catch (err: any) {
-      if (err.name === 'TypeError' && err.message.includes('fetch')) {
-        setError('Failed to fetch. This could be due to a network error or a CORS policy blocking the request from the browser. Check the browser console (F12 -> Console) for more details.');
-      } else {
-        setError(err.message || 'An unknown error occurred.');
-      }
+      // General error handler for function call issues
+      setError(err.message || 'An unknown error occurred.');
     } finally {
       setLoading(false);
     }
@@ -106,7 +110,7 @@ const ApiTesterPage = () => {
             <CardHeader>
               <CardTitle className="text-2xl">API Tester</CardTitle>
               <CardDescription>
-                Enter an API endpoint, choose a method, and optionally provide an API key and request body. The API key will be sent in the `Authorization: Bearer &lt;key&gt;` header.
+                Enter an API endpoint, choose a method, and optionally provide an API key and request body. All requests are proxied to avoid CORS issues.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -182,7 +186,7 @@ const ApiTesterPage = () => {
                   </div>
                 )}
                 
-                {responseMeta && (
+                {responseMeta && !error && (
                   <div>
                     <h3 className={`text-lg font-semibold mb-2 ${responseMeta.status >= 400 ? 'text-destructive' : 'text-primary'}`}>
                       Response
