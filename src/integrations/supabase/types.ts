@@ -9,6 +9,93 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      api_notifications: {
+        Row: {
+          api_id: string
+          change_type: string
+          created_at: string | null
+          id: string
+          notification_data: Json | null
+          processed: boolean | null
+        }
+        Insert: {
+          api_id: string
+          change_type: string
+          created_at?: string | null
+          id?: string
+          notification_data?: Json | null
+          processed?: boolean | null
+        }
+        Update: {
+          api_id?: string
+          change_type?: string
+          created_at?: string | null
+          id?: string
+          notification_data?: Json | null
+          processed?: boolean | null
+        }
+        Relationships: []
+      }
+      api_usage_patterns: {
+        Row: {
+          access_time: string | null
+          api_id: string
+          day_of_week: number | null
+          endpoint: string
+          hour_of_day: number | null
+          id: string
+          parameters: Json | null
+          user_location: string | null
+        }
+        Insert: {
+          access_time?: string | null
+          api_id: string
+          day_of_week?: number | null
+          endpoint: string
+          hour_of_day?: number | null
+          id?: string
+          parameters?: Json | null
+          user_location?: string | null
+        }
+        Update: {
+          access_time?: string | null
+          api_id?: string
+          day_of_week?: number | null
+          endpoint?: string
+          hour_of_day?: number | null
+          id?: string
+          parameters?: Json | null
+          user_location?: string | null
+        }
+        Relationships: []
+      }
+      content_snapshots: {
+        Row: {
+          api_id: string
+          content_hash: string
+          created_at: string | null
+          id: string
+          last_updated: string | null
+          snapshot_data: Json | null
+        }
+        Insert: {
+          api_id: string
+          content_hash: string
+          created_at?: string | null
+          id?: string
+          last_updated?: string | null
+          snapshot_data?: Json | null
+        }
+        Update: {
+          api_id?: string
+          content_hash?: string
+          created_at?: string | null
+          id?: string
+          last_updated?: string | null
+          snapshot_data?: Json | null
+        }
+        Relationships: []
+      }
       conversation_history: {
         Row: {
           content: string

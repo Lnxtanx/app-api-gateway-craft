@@ -53,7 +53,8 @@ const RealTimeNotifications = () => {
 
   const fetchNotifications = async () => {
     try {
-      const { data, error } = await supabase
+      // Use type assertion to work around missing types
+      const { data, error } = await (supabase as any)
         .from('api_notifications')
         .select('*')
         .order('created_at', { ascending: false })
@@ -75,7 +76,7 @@ const RealTimeNotifications = () => {
 
   const markAsProcessed = async (id: string) => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('api_notifications')
         .update({ processed: true })
         .eq('id', id);
@@ -92,7 +93,7 @@ const RealTimeNotifications = () => {
 
   const clearAllNotifications = async () => {
     try {
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('api_notifications')
         .update({ processed: true })
         .eq('processed', false);
