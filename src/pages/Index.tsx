@@ -28,6 +28,13 @@ const Index = () => {
     e.preventDefault();
     if (!url) return;
 
+    // --- Start Debugging Logs ---
+    console.log("Attempting to generate API...");
+    const { data: { session } } = await supabase.auth.getSession();
+    console.log("User object from AuthContext:", user);
+    console.log("Current session from Supabase client:", session);
+    // --- End Debugging Logs ---
+
     if (!user) {
       toast({
         title: "Authentication Required",
@@ -48,6 +55,8 @@ const Index = () => {
       const { data: generatedApiData, error } = await supabase.functions.invoke('generate-api', {
         body: { source_url: url },
       });
+
+      console.log("Response from 'generate-api' function:", { generatedApiData, error });
 
       if (error) {
         throw new Error(error.message);
@@ -82,9 +91,17 @@ const Index = () => {
       setApiResult(result);
 
     } catch (error: any) {
+       let errorMessage = error.message;
+       try {
+         // Supabase function errors can be stringified JSON, try to parse for a cleaner message.
+         const parsed = JSON.parse(error.message);
+         errorMessage = parsed.message || parsed.error || errorMessage;
+       } catch (e) {
+         // Not a JSON error, use as is.
+       }
        toast({
         title: "Error Generating API",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
