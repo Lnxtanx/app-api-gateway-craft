@@ -1,5 +1,5 @@
 
-import { Bot } from "lucide-react";
+import { Bot, Key } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate } from "react-router-dom";
@@ -15,7 +15,7 @@ const Header = () => {
   };
 
   return (
-    <header className="py-4">
+    <header className="py-4 border-b">
       <div className="container mx-auto flex justify-between items-center">
         <Link to="/" className="flex items-center gap-2">
           <Bot className="text-primary h-8 w-8" />
@@ -28,7 +28,12 @@ const Header = () => {
             <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Docs</a>
           </nav>
           {loading ? null : user ? (
-            <Button onClick={handleLogout} variant="outline">Logout</Button>
+            <>
+              <Button variant="ghost" asChild>
+                <Link to="/dashboard">Dashboard</Link>
+              </Button>
+              <Button onClick={handleLogout} variant="outline">Logout</Button>
+            </>
           ) : (
             <Button asChild>
               <Link to="/auth">Login / Sign Up</Link>
