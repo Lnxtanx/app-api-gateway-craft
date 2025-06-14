@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import Header from '@/components/Header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,10 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import CodeBlock from '@/components/CodeBlock';
 import { LoaderCircle, AlertCircle } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 
 const ApiTesterPage = () => {
   const [endpoint, setEndpoint] = useState('');
   const [apiKey, setApiKey] = useState('');
+  const [method, setMethod] = useState('GET');
+  const [body, setBody] = useState('');
   const [response, setResponse] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -27,12 +32,27 @@ const ApiTesterPage = () => {
     }
 
     try {
-      const res = await fetch(endpoint, {
+      const fetchOptions: RequestInit = {
+        method,
         headers: {
           'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
         },
-      });
+      };
+
+      if (['POST', 'PUT', 'PATCH'].includes(method) && body) {
+        try {
+          // Validate that body is a valid JSON
+          JSON.parse(body);
+          fetchOptions.body = body;
+        } catch (jsonError) {
+          setError('Request body contains invalid JSON.');
+          setLoading(false);
+          return;
+        }
+      }
+
+      const res = await fetch(endpoint, fetchOptions);
 
       const data = await res.json();
 
@@ -58,22 +78,40 @@ const ApiTesterPage = () => {
             <CardHeader>
               <CardTitle className="text-2xl">API Tester</CardTitle>
               <CardDescription>
-                Enter an API endpoint and key to make a test request. The API key will be sent in the `Authorization: Bearer &lt;key&gt;` header.
+                Enter an API endpoint, choose a method, and optionally provide an API key and request body. The API key will be sent in the `Authorization: Bearer &lt;key&gt;` header.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleTestApi} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="endpoint">API Endpoint</Label>
-                  <Input
-                    id="endpoint"
-                    type="url"
-                    placeholder="https://api.example.com/data"
-                    value={endpoint}
-                    onChange={(e) => setEndpoint(e.target.value)}
-                    required
-                  />
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="sm:w-1/4">
+                    <Label htmlFor="method">Method</Label>
+                    <Select value={method} onValueChange={setMethod}>
+                      <SelectTrigger id="method">
+                        <SelectValue placeholder="Method" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="GET">GET</SelectItem>
+                        <SelectItem value="POST">POST</SelectItem>
+                        <SelectItem value="PUT">PUT</SelectItem>
+                        <SelectItem value="PATCH">PATCH</SelectItem>
+                        <SelectItem value="DELETE">DELETE</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex-grow space-y-2">
+                    <Label htmlFor="endpoint">API Endpoint</Label>
+                    <Input
+                      id="endpoint"
+                      type="url"
+                      placeholder="https://api.example.com/data"
+                      value={endpoint}
+                      onChange={(e) => setEndpoint(e.target.value)}
+                      required
+                    />
+                  </div>
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="apiKey">API Key (Bearer Token)</Label>
                   <Input
@@ -84,6 +122,21 @@ const ApiTesterPage = () => {
                     onChange={(e) => setApiKey(e.target.value)}
                   />
                 </div>
+
+                {['POST', 'PUT', 'PATCH'].includes(method) && (
+                  <div className="space-y-2">
+                    <Label htmlFor="body">Request Body (JSON)</Label>
+                    <Textarea
+                      id="body"
+                      placeholder='{ "key": "value" }'
+                      value={body}
+                      onChange={(e) => setBody(e.target.value)}
+                      rows={6}
+                      className="font-mono text-sm"
+                    />
+                  </div>
+                )}
+
                 <Button type="submit" disabled={loading} className="w-full">
                   {loading && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
                   Test API
