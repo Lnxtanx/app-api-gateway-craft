@@ -1,9 +1,32 @@
-
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import * as cheerio from 'https://esm.sh/cheerio@1.0.0-rc.12'
 import puppeteer, { Browser } from 'https://deno.land/x/puppeteer@16.2.0/mod.ts'
 import { corsHeaders } from '../_shared/cors.ts'
+
+/**
+ * Extracts common data fields from a single item element.
+ * This helps in creating a structured object for each item in a list.
+ */
+function extractItemData(element: cheerio.Cheerio<cheerio.Element>, $: cheerio.CheerioAPI) {
+  const getAttr = (selector: string, attr: string) => $(element).find(selector).first().attr(attr) || null
+  const getText = (selector: string) => $(element).find(selector).first().text().trim() || null
+
+  const title = getText('h1, h2, h3, h4, h5, h6, [itemprop="name"]') || getAttr('a', 'title')
+  const link = getAttr('a', 'href')
+  const image = getAttr('img', 'src') || getAttr('img', 'data-src')
+  const description = getText('p, [itemprop="description"]')
+  
+  // A simple regex to find price-like text
+  const priceText = getText('[class*="price"], [id*="price"], [itemprop="price"], [itemprop="offers"]');
+  const price = priceText ? (priceText.match(/[\$€£]?\s?\d{1,3}(?:[.,]\d{3})*(?:[.,]\d{2})?/)?.[0] || null) : null;
+
+  // Only return an object if it has some meaningful content
+  if (title || link || image) {
+    return { title, link, image, description, price };
+  }
+  return null;
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -78,26 +101,54 @@ serve(async (req) => {
         }
     }
 
-    // 5. Parse with Cheerio and extract data
+    // 5. Parse with Cheerio and attempt to extract structured data
     const $ = cheerio.load(html)
     
-    const title = $('title').text()
-    const headings = $('h1, h2, h3').map((_, el) => $(el).text()).get()
-    const links = $('a').map((_, el) => $(el).attr('href')).get().filter(Boolean)
-    const images = $('img').map((_, el) => $(el).attr('src')).get().filter(Boolean)
+    let extractedData;
+    let items: any[] = [];
+    
+    // Strategy: Find common list/item container selectors and extract data from their children
+    const itemSelectors = 'article, li, [class*="item"], [class*="product"], [class*="post"]';
+    $(itemSelectors).each((_, el) => {
+      const itemData = extractItemData($(el), $);
+      if (itemData) {
+        items.push(itemData);
+      }
+    });
 
-    const extractedData = {
-      data: {
-        title,
-        headings,
-        links,
-        images,
-      },
-      source_url: api.source_url,
+    // If we found a good number of structured items, use that as the primary data.
+    if (items.length > 3) {
+      extractedData = {
+        data: {
+          page_title: $('title').text(),
+          item_count: items.length,
+          items: items,
+        },
+        source_url: api.source_url,
+        _extraction_method: 'structured_list_pattern',
+      }
+    } else {
+      // Fallback to the original simple extraction if no structured data is found
+      console.log("Structured extraction failed, using simple fallback.");
+      const title = $('title').text()
+      const headings = $('h1, h2, h3').map((_, el) => $(el).text()).get()
+      const links = $('a').map((_, el) => $(el).attr('href')).get().filter(Boolean)
+      const images = $('img').map((_, el) => $(el).attr('src')).get().filter(Boolean)
+
+      extractedData = {
+        data: {
+          title,
+          headings,
+          links,
+          images,
+        },
+        source_url: api.source_url,
+        _extraction_method: 'simple_fallback',
+      }
     }
 
     // 6. Return extracted data
-    return new Response(JSON.stringify(extractedData), {
+    return new Response(JSON.stringify(extractedData, null, 2), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
