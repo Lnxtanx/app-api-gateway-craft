@@ -1,7 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import * as cheerio from 'https://esm.sh/cheerio@1.0.0-rc.12'
-import puppeteer, { Browser } from 'https://deno.land/x/puppeteer@16.2.0/mod.ts'
+import puppeteer, { Browser, Page } from 'https://deno.land/x/puppeteer@16.2.0/mod.ts'
 import { corsHeaders } from '../_shared/cors.ts'
 
 /**
@@ -251,6 +251,395 @@ function extractItemDataIntelligent(element: cheerio.Cheerio<cheerio.Element>, $
   return null;
 }
 
+/**
+ * Level 2: Advanced Browser Automation with Session Management
+ */
+class AdvancedBrowserAutomation {
+  private browser: Browser | null = null;
+  private page: Page | null = null;
+
+  async init() {
+    this.browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'],
+    });
+    this.page = await this.browser.newPage();
+    
+    // Enhanced user agent and viewport settings
+    await this.page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+    await this.page.setViewport({ width: 1920, height: 1080 });
+  }
+
+  async navigateWithSPASupport(url: string) {
+    if (!this.page) throw new Error('Browser not initialized');
+    
+    console.log(`Navigating to ${url} with SPA support...`);
+    
+    // Advanced navigation with SPA detection
+    await this.page.goto(url, { 
+      waitUntil: ['networkidle0', 'domcontentloaded'],
+      timeout: 60000 
+    });
+
+    // Wait for potential SPA hydration
+    await this.page.waitForTimeout(3000);
+    
+    // Detect if it's a SPA by checking for common SPA frameworks
+    const isSPA = await this.page.evaluate(() => {
+      return !!(window.React || window.Vue || window.angular || 
+               document.querySelector('[data-reactroot]') ||
+               document.querySelector('#__nuxt') ||
+               document.querySelector('[ng-app]'));
+    });
+
+    if (isSPA) {
+      console.log('SPA detected, waiting for dynamic content...');
+      await this.page.waitForTimeout(5000);
+    }
+
+    return isSPA;
+  }
+
+  async handleInfiniteScroll(): Promise<void> {
+    if (!this.page) return;
+    
+    console.log('Handling infinite scroll...');
+    let previousHeight = 0;
+    let scrollAttempts = 0;
+    const maxScrollAttempts = 15;
+
+    while (scrollAttempts < maxScrollAttempts) {
+      // Get current scroll height
+      const currentHeight = await this.page.evaluate(() => document.body.scrollHeight);
+      
+      if (currentHeight === previousHeight) {
+        // Try clicking "Load More" buttons
+        const loadMoreClicks = await this.page.evaluate(() => {
+          const buttons = Array.from(document.querySelectorAll('button, a')).filter(el => {
+            const text = el.textContent?.toLowerCase() || '';
+            return text.includes('load more') || text.includes('show more') || 
+                   text.includes('view more') || text.includes('see more') ||
+                   text.includes('next') || text.includes('more');
+          });
+          
+          let clicked = 0;
+          buttons.forEach(button => {
+            if (button instanceof HTMLElement && button.offsetParent !== null) {
+              button.click();
+              clicked++;
+            }
+          });
+          return clicked;
+        });
+
+        if (loadMoreClicks === 0) break;
+        await this.page.waitForTimeout(2000);
+      }
+
+      // Scroll to bottom
+      await this.page.evaluate(() => {
+        window.scrollTo(0, document.body.scrollHeight);
+      });
+
+      await this.page.waitForTimeout(2000);
+      previousHeight = currentHeight;
+      scrollAttempts++;
+    }
+
+    console.log(`Infinite scroll completed after ${scrollAttempts} attempts`);
+  }
+
+  async detectAndInteractWithForms(): Promise<any[]> {
+    if (!this.page) return [];
+
+    console.log('Detecting and analyzing forms...');
+    
+    const formData = await this.page.evaluate(() => {
+      const forms = Array.from(document.querySelectorAll('form'));
+      return forms.map(form => {
+        const inputs = Array.from(form.querySelectorAll('input, select, textarea'));
+        return {
+          action: form.action,
+          method: form.method,
+          inputs: inputs.map(input => ({
+            name: input.name,
+            type: input.type || input.tagName.toLowerCase(),
+            placeholder: input.placeholder,
+            required: input.required
+          }))
+        };
+      });
+    });
+
+    // Detect search forms and try basic interactions
+    for (const form of formData) {
+      const hasSearchField = form.inputs.some(input => 
+        input.name?.includes('search') || 
+        input.placeholder?.toLowerCase().includes('search')
+      );
+      
+      if (hasSearchField) {
+        console.log('Search form detected, attempting basic interaction...');
+        try {
+          await this.page.type('input[name*="search"], input[placeholder*="search"]', 'test');
+          await this.page.waitForTimeout(1000);
+          await this.page.keyboard.press('Escape'); // Clear the search
+        } catch (e) {
+          console.log('Search form interaction failed:', e);
+        }
+      }
+    }
+
+    return formData;
+  }
+
+  async monitorWebSocketActivity(): Promise<string[]> {
+    if (!this.page) return [];
+
+    const websocketUrls: string[] = [];
+    
+    // Monitor WebSocket connections
+    this.page.on('websocket', websocket => {
+      console.log('WebSocket detected:', websocket.url());
+      websocketUrls.push(websocket.url());
+    });
+
+    // Wait a bit to capture any WebSocket connections
+    await this.page.waitForTimeout(5000);
+    
+    return websocketUrls;
+  }
+
+  async close() {
+    if (this.browser) {
+      await this.browser.close();
+    }
+  }
+
+  async getPageContent(): Promise<string> {
+    if (!this.page) throw new Error('Browser not initialized');
+    return await this.page.content();
+  }
+}
+
+/**
+ * Level 2: Semantic API Endpoint Creation
+ */
+class SemanticEndpointGenerator {
+  static generateContextAwareEndpoint(pageType: string, baseUrl: string): {
+    endpoint: string;
+    entityName: string;
+    parameters: any[];
+    sortOptions: string[];
+  } {
+    const endpointMap = {
+      'e-commerce': {
+        endpoint: '/api/products',
+        entityName: 'Product',
+        parameters: [
+          { name: 'category', type: 'string', description: 'Filter by product category' },
+          { name: 'minPrice', type: 'number', description: 'Minimum price filter' },
+          { name: 'maxPrice', type: 'number', description: 'Maximum price filter' },
+          { name: 'brand', type: 'string', description: 'Filter by brand' },
+          { name: 'rating', type: 'number', description: 'Minimum rating filter' },
+          { name: 'inStock', type: 'boolean', description: 'Filter for available products' }
+        ],
+        sortOptions: ['price_asc', 'price_desc', 'rating_desc', 'name_asc', 'newest']
+      },
+      'blog': {
+        endpoint: '/api/articles',
+        entityName: 'Article',
+        parameters: [
+          { name: 'category', type: 'string', description: 'Filter by article category' },
+          { name: 'author', type: 'string', description: 'Filter by author' },
+          { name: 'tag', type: 'string', description: 'Filter by tag' },
+          { name: 'dateFrom', type: 'string', description: 'Filter articles from date (YYYY-MM-DD)' },
+          { name: 'dateTo', type: 'string', description: 'Filter articles to date (YYYY-MM-DD)' }
+        ],
+        sortOptions: ['date_desc', 'date_asc', 'title_asc', 'author_asc']
+      },
+      'news': {
+        endpoint: '/api/articles',
+        entityName: 'NewsArticle',
+        parameters: [
+          { name: 'category', type: 'string', description: 'Filter by news category' },
+          { name: 'source', type: 'string', description: 'Filter by news source' },
+          { name: 'dateFrom', type: 'string', description: 'Filter news from date' },
+          { name: 'dateTo', type: 'string', description: 'Filter news to date' }
+        ],
+        sortOptions: ['date_desc', 'relevance', 'source_asc']
+      },
+      'job-board': {
+        endpoint: '/api/jobs',
+        entityName: 'JobListing',
+        parameters: [
+          { name: 'location', type: 'string', description: 'Filter by job location' },
+          { name: 'company', type: 'string', description: 'Filter by company' },
+          { name: 'jobType', type: 'string', description: 'Filter by job type (full-time, part-time, etc.)' },
+          { name: 'salaryMin', type: 'number', description: 'Minimum salary filter' },
+          { name: 'salaryMax', type: 'number', description: 'Maximum salary filter' },
+          { name: 'remote', type: 'boolean', description: 'Filter for remote jobs' }
+        ],
+        sortOptions: ['date_desc', 'salary_desc', 'company_asc', 'location_asc']
+      },
+      'real-estate': {
+        endpoint: '/api/properties',
+        entityName: 'Property',
+        parameters: [
+          { name: 'location', type: 'string', description: 'Filter by property location' },
+          { name: 'propertyType', type: 'string', description: 'Filter by property type' },
+          { name: 'minPrice', type: 'number', description: 'Minimum price filter' },
+          { name: 'maxPrice', type: 'number', description: 'Maximum price filter' },
+          { name: 'bedrooms', type: 'number', description: 'Number of bedrooms' },
+          { name: 'bathrooms', type: 'number', description: 'Number of bathrooms' }
+        ],
+        sortOptions: ['price_asc', 'price_desc', 'date_desc', 'size_desc']
+      },
+      'restaurant': {
+        endpoint: '/api/menu-items',
+        entityName: 'MenuItem',
+        parameters: [
+          { name: 'category', type: 'string', description: 'Filter by menu category' },
+          { name: 'dietary', type: 'string', description: 'Filter by dietary restrictions' },
+          { name: 'maxPrice', type: 'number', description: 'Maximum price filter' }
+        ],
+        sortOptions: ['name_asc', 'price_asc', 'price_desc', 'category_asc']
+      }
+    };
+
+    return endpointMap[pageType] || {
+      endpoint: '/api/items',
+      entityName: 'Item',
+      parameters: [
+        { name: 'search', type: 'string', description: 'Search items' },
+        { name: 'limit', type: 'number', description: 'Limit number of results' }
+      ],
+      sortOptions: ['date_desc', 'title_asc']
+    };
+  }
+}
+
+/**
+ * Level 2: GraphQL Schema Auto-Generation
+ */
+class GraphQLSchemaGenerator {
+  static generateTypeDefinitions(pageType: string, sampleData: any[]): string {
+    const endpointInfo = SemanticEndpointGenerator.generateContextAwareEndpoint(pageType, '');
+    const entityName = endpointInfo.entityName;
+
+    // Analyze sample data to determine field types
+    const fieldTypes = this.analyzeFieldTypes(sampleData);
+    
+    let typeDefs = `# Auto-generated GraphQL schema for ${pageType} page\n\n`;
+    
+    // Generate main entity type
+    typeDefs += `type ${entityName} {\n`;
+    Object.entries(fieldTypes).forEach(([field, type]) => {
+      typeDefs += `  ${field}: ${type}\n`;
+    });
+    typeDefs += `}\n\n`;
+
+    // Generate filter input type
+    typeDefs += `input ${entityName}Filter {\n`;
+    endpointInfo.parameters.forEach(param => {
+      const graphqlType = this.convertToGraphQLType(param.type);
+      typeDefs += `  ${param.name}: ${graphqlType}\n`;
+    });
+    typeDefs += `}\n\n`;
+
+    // Generate sort enum
+    typeDefs += `enum ${entityName}SortOption {\n`;
+    endpointInfo.sortOptions.forEach(option => {
+      typeDefs += `  ${option.toUpperCase()}\n`;
+    });
+    typeDefs += `}\n\n`;
+
+    // Generate queries
+    typeDefs += `type Query {\n`;
+    typeDefs += `  ${this.pluralize(entityName.toLowerCase())}(\n`;
+    typeDefs += `    filter: ${entityName}Filter\n`;
+    typeDefs += `    sort: ${entityName}SortOption\n`;
+    typeDefs += `    limit: Int = 10\n`;
+    typeDefs += `    offset: Int = 0\n`;
+    typeDefs += `  ): [${entityName}!]!\n`;
+    typeDefs += `  ${entityName.toLowerCase()}(id: ID!): ${entityName}\n`;
+    typeDefs += `}\n`;
+
+    return typeDefs;
+  }
+
+  static analyzeFieldTypes(sampleData: any[]): { [key: string]: string } {
+    const fieldTypes: { [key: string]: string } = {};
+    
+    if (sampleData.length === 0) return fieldTypes;
+
+    // Analyze first few items to determine types
+    const analysisItems = sampleData.slice(0, Math.min(5, sampleData.length));
+    
+    const allFields = new Set<string>();
+    analysisItems.forEach(item => {
+      Object.keys(item).forEach(key => allFields.add(key));
+    });
+
+    allFields.forEach(field => {
+      const values = analysisItems
+        .map(item => item[field])
+        .filter(val => val != null);
+      
+      if (values.length === 0) {
+        fieldTypes[field] = 'String';
+        return;
+      }
+
+      // Determine type based on values
+      const firstValue = values[0];
+      
+      if (typeof firstValue === 'number') {
+        fieldTypes[field] = Number.isInteger(firstValue) ? 'Int' : 'Float';
+      } else if (typeof firstValue === 'boolean') {
+        fieldTypes[field] = 'Boolean';
+      } else if (typeof firstValue === 'string') {
+        // Check if it looks like a date
+        if (this.isDateString(firstValue)) {
+          fieldTypes[field] = 'String'; // Could be DateTime scalar
+        } else if (this.isPriceString(firstValue)) {
+          fieldTypes[field] = 'String'; // Could be Money scalar
+        } else {
+          fieldTypes[field] = 'String';
+        }
+      } else {
+        fieldTypes[field] = 'String';
+      }
+    });
+
+    return fieldTypes;
+  }
+
+  static convertToGraphQLType(jsType: string): string {
+    const typeMap = {
+      'string': 'String',
+      'number': 'Float',
+      'boolean': 'Boolean',
+      'array': '[String]'
+    };
+    return typeMap[jsType] || 'String';
+  }
+
+  static isDateString(str: string): boolean {
+    return /\d{4}-\d{2}-\d{2}|\d{1,2}\/\d{1,2}\/\d{2,4}|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec/.test(str);
+  }
+
+  static isPriceString(str: string): boolean {
+    return /[\$€£¥]\s?\d+|\d+\s?(?:USD|EUR|GBP)/.test(str);
+  }
+
+  static pluralize(word: string): string {
+    if (word.endsWith('y')) return word.slice(0, -1) + 'ies';
+    if (word.endsWith('s') || word.endsWith('sh') || word.endsWith('ch')) return word + 'es';
+    return word + 's';
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -262,7 +651,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // 1. Extract randomId from the path
+    // Extract randomId from the path
     const url = new URL(req.url)
     const pathParts = url.pathname.split('/')
     const randomId = pathParts.pop()
@@ -274,10 +663,9 @@ serve(async (req) => {
       })
     }
     
-    // The endpoint path in the DB includes the function name, e.g., /functions/v1/extract-api/:id
     const endpointPath = `/functions/v1/extract-api/${randomId}`
     
-    // 2. Get API Key from header
+    // Get API Key from header
     const apiKey = req.headers.get('x-api-key')
     if (!apiKey) {
       return new Response(JSON.stringify({ error: 'API key (x-api-key header) is required.' }), {
@@ -286,11 +674,11 @@ serve(async (req) => {
       })
     }
     
-    // 3. Find the API details in the database
+    // Find the API details in the database
     const { data: api, error: dbError } = await supabaseAdmin
       .from('generated_apis')
       .select('source_url, api_endpoint')
-      .ilike('api_endpoint', `%${endpointPath}`) // Match based on path
+      .ilike('api_endpoint', `%${endpointPath}`)
       .eq('api_key', apiKey)
       .single()
 
@@ -302,146 +690,168 @@ serve(async (req) => {
       })
     }
 
-    // 4. Scrape the source URL with enhanced Puppeteer capabilities
-    console.log(`Scraping ${api.source_url} with enhanced AI analysis...`);
-    let browser: Browser | null = null;
-    let html: string;
+    // Level 2: Advanced Browser Automation
+    console.log(`Starting Level 2 advanced scraping for ${api.source_url}...`);
+    const browserAutomation = new AdvancedBrowserAutomation();
+    
     try {
-      browser = await puppeteer.launch({
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
-      });
-      const page = await browser.newPage();
-      await page.goto(api.source_url, { waitUntil: 'networkidle2', timeout: 30000 });
-
-      // Auto-scroll to handle infinite loading
-      console.log('Auto-scrolling to load dynamic content...');
-      let previousHeight;
-      for (let i = 0; i < 5; i++) {
-        previousHeight = await page.evaluate('document.body.scrollHeight');
-        await page.evaluate('window.scrollTo(0, document.body.scrollHeight)');
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        const newHeight = await page.evaluate('document.body.scrollHeight');
-        if (newHeight === previousHeight) {
-          console.log('Scrolling finished, no new content loaded.');
+      await browserAutomation.init();
+      
+      // Navigate with SPA support
+      const isSPA = await browserAutomation.navigateWithSPASupport(api.source_url);
+      
+      // Handle infinite scroll
+      await browserAutomation.handleInfiniteScroll();
+      
+      // Detect and analyze forms
+      const formData = await browserAutomation.detectAndInteractWithForms();
+      
+      // Monitor WebSocket activity
+      const websocketUrls = await browserAutomation.monitorWebSocketActivity();
+      
+      // Get final page content
+      const html = await browserAutomation.getPageContent();
+      
+      console.log(`Advanced scraping completed. SPA: ${isSPA}, Forms: ${formData.length}, WebSockets: ${websocketUrls.length}`);
+      
+      // AI-Powered Content Analysis
+      const $ = cheerio.load(html)
+      const pageClassification = classifyPageType(html, $);
+      const behaviorAnalysis = analyzeUserInteractionPatterns($);
+      
+      // Level 2: Semantic Endpoint Generation
+      const semanticEndpoint = SemanticEndpointGenerator.generateContextAwareEndpoint(
+        pageClassification.pageType, 
+        api.source_url
+      );
+      
+      let extractedData;
+      let items: any[] = [];
+      
+      // Enhanced item selection based on page type
+      let itemSelectors = 'article, li, [class*="item"], [class*="product"], [class*="post"]';
+      
+      switch (pageClassification.pageType) {
+        case 'e-commerce':
+          itemSelectors = '[class*="product"], [class*="item"], [data-product-id], [itemprop="product"]';
           break;
+        case 'blog':
+        case 'news':
+          itemSelectors = 'article, [class*="post"], [class*="article"], [class*="story"]';
+          break;
+        case 'job-board':
+          itemSelectors = '[class*="job"], [class*="position"], [class*="listing"]';
+          break;
+        case 'real-estate':
+          itemSelectors = '[class*="property"], [class*="listing"], [class*="house"]';
+          break;
+        case 'restaurant':
+          itemSelectors = '[class*="menu"], [class*="dish"], [class*="item"]';
+          break;
+      }
+      
+      // Extract items using intelligent field mapping
+      $(itemSelectors).each((_, el) => {
+        const itemData = extractItemDataIntelligent($(el), $, pageClassification.pageType);
+        if (itemData) {
+          items.push(itemData);
         }
-        console.log(`Scrolled down, new page height: ${newHeight}`);
+      });
+
+      // Level 2: GraphQL Schema Generation
+      const graphqlSchema = GraphQLSchemaGenerator.generateTypeDefinitions(
+        pageClassification.pageType, 
+        items
+      );
+
+      // Enhanced structured data response
+      if (items.length > 2) {
+        extractedData = {
+          data: {
+            page_title: $('title').text(),
+            page_type: pageClassification.pageType,
+            confidence_score: pageClassification.confidence,
+            detected_entities: pageClassification.entities,
+            detected_patterns: pageClassification.patterns,
+            behavioral_analysis: behaviorAnalysis,
+            item_count: items.length,
+            items: items,
+          },
+          source_url: api.source_url,
+          _extraction_method: 'level_2_advanced_automation',
+          _semantic_api: {
+            endpoint: semanticEndpoint.endpoint,
+            entity_name: semanticEndpoint.entityName,
+            parameters: semanticEndpoint.parameters,
+            sort_options: semanticEndpoint.sortOptions
+          },
+          _graphql_schema: graphqlSchema,
+          _advanced_features: {
+            spa_detected: isSPA,
+            forms_analyzed: formData.length,
+            websocket_connections: websocketUrls,
+            infinite_scroll_applied: true,
+            session_management: true
+          },
+          _classification_metadata: {
+            page_type: pageClassification.pageType,
+            confidence: pageClassification.confidence,
+            entities_found: pageClassification.entities,
+            interaction_patterns: behaviorAnalysis.interactionElements
+          }
+        }
+      } else {
+        // Enhanced fallback with Level 2 insights
+        console.log("Advanced extraction yielded few results, using enhanced fallback.");
+        const title = $('title').text()
+        const headings = $('h1, h2, h3').map((_, el) => $(el).text()).get()
+        const links = $('a').map((_, el) => $(el).attr('href')).get().filter(Boolean)
+        const images = $('img').map((_, el) => $(el).attr('src')).get().filter(Boolean)
+
+        extractedData = {
+          data: {
+            title,
+            page_type: pageClassification.pageType,
+            confidence_score: pageClassification.confidence,
+            detected_entities: pageClassification.entities,
+            behavioral_analysis: behaviorAnalysis,
+            headings,
+            links,
+            images,
+          },
+          source_url: api.source_url,
+          _extraction_method: 'level_2_enhanced_fallback',
+          _semantic_api: {
+            endpoint: semanticEndpoint.endpoint,
+            entity_name: semanticEndpoint.entityName,
+            parameters: semanticEndpoint.parameters,
+            sort_options: semanticEndpoint.sortOptions
+          },
+          _graphql_schema: graphqlSchema,
+          _advanced_features: {
+            spa_detected: isSPA,
+            forms_analyzed: formData.length,
+            websocket_connections: websocketUrls
+          },
+          _classification_metadata: {
+            page_type: pageClassification.pageType,
+            confidence: pageClassification.confidence,
+            entities_found: pageClassification.entities
+          }
+        }
       }
 
-      html = await page.content();
-      console.log(`Successfully scraped content from ${api.source_url}`);
-    } catch (scrapeError) {
-        console.error('Enhanced scraping error:', scrapeError);
-        throw new Error(`Failed to scrape source URL with enhanced browser: ${scrapeError.message}`);
+      return new Response(JSON.stringify(extractedData, null, 2), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+      
     } finally {
-        if (browser) {
-            await browser.close();
-        }
+      await browserAutomation.close();
     }
 
-    // 5. AI-Powered Content Analysis
-    const $ = cheerio.load(html)
-    
-    // Classify page type using AI-powered analysis
-    const pageClassification = classifyPageType(html, $);
-    console.log(`Page classified as: ${pageClassification.pageType} (confidence: ${pageClassification.confidence})`);
-    
-    // Analyze user interaction patterns
-    const behaviorAnalysis = analyzeUserInteractionPatterns($);
-    console.log(`Behavioral analysis complete:`, behaviorAnalysis);
-    
-    let extractedData;
-    let items: any[] = [];
-    
-    // Intelligent item selection based on page type
-    let itemSelectors = 'article, li, [class*="item"], [class*="product"], [class*="post"]';
-    
-    switch (pageClassification.pageType) {
-      case 'e-commerce':
-        itemSelectors = '[class*="product"], [class*="item"], [data-product-id], [itemprop="product"]';
-        break;
-      case 'blog':
-      case 'news':
-        itemSelectors = 'article, [class*="post"], [class*="article"], [class*="story"]';
-        break;
-      case 'job-board':
-        itemSelectors = '[class*="job"], [class*="position"], [class*="listing"]';
-        break;
-      case 'real-estate':
-        itemSelectors = '[class*="property"], [class*="listing"], [class*="house"]';
-        break;
-      case 'restaurant':
-        itemSelectors = '[class*="menu"], [class*="dish"], [class*="item"]';
-        break;
-    }
-    
-    // Extract items using intelligent field mapping
-    $(itemSelectors).each((_, el) => {
-      const itemData = extractItemDataIntelligent($(el), $, pageClassification.pageType);
-      if (itemData) {
-        items.push(itemData);
-      }
-    });
-
-    // Enhanced structured data response
-    if (items.length > 2) {
-      extractedData = {
-        data: {
-          page_title: $('title').text(),
-          page_type: pageClassification.pageType,
-          confidence_score: pageClassification.confidence,
-          detected_entities: pageClassification.entities,
-          detected_patterns: pageClassification.patterns,
-          behavioral_analysis: behaviorAnalysis,
-          item_count: items.length,
-          items: items,
-        },
-        source_url: api.source_url,
-        _extraction_method: 'ai_powered_intelligent_extraction',
-        _classification_metadata: {
-          page_type: pageClassification.pageType,
-          confidence: pageClassification.confidence,
-          entities_found: pageClassification.entities,
-          interaction_patterns: behaviorAnalysis.interactionElements
-        }
-      }
-    } else {
-      // Enhanced fallback with AI insights
-      console.log("Intelligent extraction yielded few results, using enhanced fallback.");
-      const title = $('title').text()
-      const headings = $('h1, h2, h3').map((_, el) => $(el).text()).get()
-      const links = $('a').map((_, el) => $(el).attr('href')).get().filter(Boolean)
-      const images = $('img').map((_, el) => $(el).attr('src')).get().filter(Boolean)
-
-      extractedData = {
-        data: {
-          title,
-          page_type: pageClassification.pageType,
-          confidence_score: pageClassification.confidence,
-          detected_entities: pageClassification.entities,
-          behavioral_analysis: behaviorAnalysis,
-          headings,
-          links,
-          images,
-        },
-        source_url: api.source_url,
-        _extraction_method: 'ai_enhanced_fallback',
-        _classification_metadata: {
-          page_type: pageClassification.pageType,
-          confidence: pageClassification.confidence,
-          entities_found: pageClassification.entities
-        }
-      }
-    }
-
-    // 6. Return intelligently extracted data
-    return new Response(JSON.stringify(extractedData, null, 2), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
   } catch (error) {
-    console.error('AI Enhancement Error:', error)
+    console.error('Level 2 Enhancement Error:', error)
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

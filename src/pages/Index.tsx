@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import Header from '@/components/Header';
 import CodeBlock from '@/components/CodeBlock';
+import AdvancedApiFeatures from '@/components/AdvancedApiFeatures';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +20,7 @@ const Index = () => {
     apiKey: string;
     curl: string;
     response: string;
+    responseData?: any;
   } | null>(null);
 
   const { user } = useAuth();
@@ -86,6 +88,7 @@ const Index = () => {
         apiKey: generatedApiData.api_key,
         curl: `curl "${generatedApiData.api_endpoint}" \\\n  -H "x-api-key: ${generatedApiData.api_key}"`,
         response: JSON.stringify(scrapedData, null, 2),
+        responseData: scrapedData,
       };
       
       setApiResult(result);
@@ -149,12 +152,17 @@ const Index = () => {
         {isLoading && (
            <div className="flex flex-col items-center gap-4">
             <LoaderCircle className="h-12 w-12 animate-spin text-primary" />
-            <p className="text-muted-foreground">Crafting your API... this might take a moment.</p>
+            <p className="text-muted-foreground">Crafting your API with Level 2 intelligence... this might take a moment.</p>
            </div>
         )}
 
         {apiResult && (
           <div className="w-full max-w-4xl grid gap-6 text-left animate-in fade-in-50 duration-500">
+            {/* Show advanced features if available */}
+            {apiResult.responseData && (
+              <AdvancedApiFeatures apiData={apiResult.responseData} />
+            )}
+            
             <Card>
               <CardHeader>
                 <CardTitle>API Endpoint</CardTitle>
