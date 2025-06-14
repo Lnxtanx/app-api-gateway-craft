@@ -10,6 +10,7 @@ import AuthPage from "./pages/AuthPage";
 import DashboardPage from "./pages/DashboardPage";
 import ApiTesterPage from "./pages/ApiTesterPage";
 import StealthScrapingPage from "./pages/StealthScrapingPage";
+import BusinessIntelligencePage from "./pages/BusinessIntelligencePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/api-tester" element={<ApiTesterPage />} />
               <Route path="/stealth-scraping" element={<StealthScrapingPage />} />
+              <Route path="/business-intelligence" element={<BusinessIntelligencePage />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>

@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { LogOut, User, Zap, Shield, Activity, TestTube } from 'lucide-react';
+import { LogOut, User, Zap, Shield, TestTube, BarChart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Header() {
@@ -77,6 +77,15 @@ export default function Header() {
                 >
                   <Shield className="h-4 w-4" />
                   Stealth Engine
+                </Link>
+                <Link
+                  to="/business-intelligence"
+                  className={`transition-colors hover:text-foreground/80 flex items-center gap-1 ${
+                    isActive('/business-intelligence') ? 'text-foreground' : 'text-foreground/60'
+                  }`}
+                >
+                  <BarChart className="h-4 w-4" />
+                  Business Intelligence
                 </Link>
               </>
             )}
