@@ -1,1 +1,20 @@
+
+# This file configures your Supabase project.
+# For more information, see: https://supabase.com/docs/reference/cli/config
+
 project_id = "bmhmqjahtqjfifiopqgp"
+
+[api]
+enabled = true
+# We don't specify default paths here to keep it simple.
+
+[functions.extract-api]
+# This is the key change. We are turning off the default JWT (user login token)
+# verification for the 'extract-api' function. This is because this endpoint
+# uses its own custom 'x-api-key' header for authentication and should be
+# publicly accessible without a user being logged in.
+verify_jwt = false
+
+# NOTE: We do NOT add a configuration for 'generate-api'.
+# By leaving it out, it uses the default setting (verify_jwt = true),
+# which is what we want, as only authenticated users should be able to generate new APIs.
