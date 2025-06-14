@@ -1,231 +1,83 @@
 
-import { useState } from 'react';
-import Header from '@/components/Header';
+import React from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import EnhancedApiTester from '@/components/EnhancedApiTester';
+import ApiStatsCard from '@/components/ApiStatsCard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import CodeBlock from '@/components/CodeBlock';
-import { LoaderCircle, AlertCircle } from 'lucide-react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { supabase } from '@/integrations/supabase/client';
+import { TestTube, Zap, Globe, Shield } from 'lucide-react';
 
-const ApiTesterPage = () => {
-  const [endpoint, setEndpoint] = useState('');
-  const [apiKey, setApiKey] = useState('');
-  const [method, setMethod] = useState('GET');
-  const [body, setBody] = useState('');
-  const [response, setResponse] = useState<any>(null);
-  const [responseMeta, setResponseMeta] = useState<{ status: number; statusText: string; headers: Record<string, string> } | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+export default function ApiTesterPage() {
+  const { user } = useAuth();
 
-  const handleTestApi = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setResponse(null);
-    setResponseMeta(null);
-    setError(null);
-
-    if (!endpoint.startsWith('http')) {
-      setError('Please enter a valid URL (e.g., https://...)');
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const headers: Record<string, string> = {};
-      if (apiKey) {
-        headers['x-api-key'] = apiKey;
-      }
-
-      if (['POST', 'PUT', 'PATCH'].includes(method) && body) {
-        try {
-          JSON.parse(body); // Validate JSON for user feedback
-          headers['Content-Type'] = 'application/json';
-        } catch (jsonError) {
-          setError('Request body contains invalid JSON.');
-          setLoading(false);
-          return;
-        }
-      }
-
-      const requestPayload: { [key: string]: any } = {
-        method,
-        url: endpoint,
-        headers,
-      };
-
-      // Only include body for relevant methods
-      if (['POST', 'PUT', 'PATCH'].includes(method)) {
-        requestPayload.body = body || null;
-      }
-
-      // Call the 'api-proxy' edge function with the correctly formed payload
-      const { data: proxyResponse, error: functionError } = await supabase.functions.invoke('api-proxy', {
-        body: requestPayload,
-      });
-
-      if (functionError) {
-        throw new Error(functionError.message);
-      }
-      
-      if (proxyResponse.error) {
-        throw new Error(proxyResponse.error);
-      }
-
-      const { status, statusText, headers: responseHeaders, body: responseBodyText } = proxyResponse;
-      
-      setResponseMeta({ status, statusText, headers: responseHeaders });
-
-      let responseData: any;
-      if (responseBodyText) {
-        try {
-          responseData = JSON.parse(responseBodyText);
-        } catch (e) {
-          responseData = responseBodyText;
-        }
-      }
-
-      if (status >= 400) {
-        const errorMessage = (typeof responseData === 'object' && responseData !== null && (responseData.error?.message || responseData.message))
-          ? (responseData.error?.message || responseData.message)
-          : (typeof responseData === 'string' && responseData) ? responseData : `Request failed: ${status} ${statusText}`;
-        setError(errorMessage); // Use setError to display API errors, not throw
-      }
-
-      if (responseData) {
-        setResponse(responseData);
-      }
-
-    } catch (err: any) {
-      // General error handler for function call issues
-      setError(err.message || 'An unknown error occurred.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  if (!user) {
+    return (
+      <div className="container mx-auto py-8">
+        <Card className="max-w-md mx-auto">
+          <CardHeader className="text-center">
+            <TestTube className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <CardTitle>Authentication Required</CardTitle>
+            <CardDescription>
+              Please sign in to access the API testing tools
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
-      <Header />
-      <main className="flex-grow container mx-auto px-4 py-8">
-        <div className="max-w-3xl mx-auto">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-2xl">API Tester</CardTitle>
-              <CardDescription>
-                Enter an API endpoint, choose a method, and optionally provide an API key and request body. All requests are proxied to avoid CORS issues.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleTestApi} className="space-y-4">
-                <div className="flex flex-col sm:flex-row gap-4">
-                  <div className="sm:w-1/4">
-                    <Label htmlFor="method">Method</Label>
-                    <Select value={method} onValueChange={setMethod}>
-                      <SelectTrigger id="method">
-                        <SelectValue placeholder="Method" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="GET">GET</SelectItem>
-                        <SelectItem value="POST">POST</SelectItem>
-                        <SelectItem value="PUT">PUT</SelectItem>
-                        <SelectItem value="PATCH">PATCH</SelectItem>
-                        <SelectItem value="DELETE">DELETE</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex-grow space-y-2">
-                    <Label htmlFor="endpoint">API Endpoint</Label>
-                    <Input
-                      id="endpoint"
-                      type="url"
-                      placeholder="https://api.example.com/data"
-                      value={endpoint}
-                      onChange={(e) => setEndpoint(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="apiKey">API Key</Label>
-                  <Input
-                    id="apiKey"
-                    type="text"
-                    placeholder="Your API Key"
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                  />
-                </div>
-
-                {['POST', 'PUT', 'PATCH'].includes(method) && (
-                  <div className="space-y-2">
-                    <Label htmlFor="body">Request Body (JSON)</Label>
-                    <Textarea
-                      id="body"
-                      placeholder='{ "key": "value" }'
-                      value={body}
-                      onChange={(e) => setBody(e.target.value)}
-                      rows={6}
-                      className="font-mono text-sm"
-                    />
-                  </div>
-                )}
-
-                <Button type="submit" disabled={loading} className="w-full">
-                  {loading && <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />}
-                  Test API
-                </Button>
-              </form>
-              
-              <div className="mt-6 space-y-4">
-                {error && (
-                  <div>
-                    <h3 className="text-lg font-semibold mb-2 text-destructive">Error</h3>
-                    <div className="bg-destructive/10 text-destructive rounded-md p-4 flex items-start gap-2">
-                      <AlertCircle className="h-5 w-5 mt-0.5 shrink-0" />
-                      <pre className="whitespace-pre-wrap font-mono text-sm">{error}</pre>
-                    </div>
-                  </div>
-                )}
-                
-                {responseMeta && !error && (
-                  <div>
-                    <h3 className={`text-lg font-semibold mb-2 ${responseMeta.status >= 400 ? 'text-destructive' : 'text-primary'}`}>
-                      Response
-                    </h3>
-                    <div className="space-y-4 rounded-md border p-4">
-                      <div>
-                        <div className={`font-semibold ${responseMeta.status >= 400 ? 'text-destructive' : 'text-green-600'}`}>
-                          Status: {responseMeta.status} {responseMeta.statusText}
-                        </div>
-                        <h4 className="font-semibold mt-4 mb-2">Headers</h4>
-                        <div className="bg-muted rounded-md max-h-48 overflow-auto">
-                           <CodeBlock code={Object.entries(responseMeta.headers).map(([key, value]) => `${key}: ${value}`).join('\n')} />
-                        </div>
-                      </div>
-                      
-                      {response && (
-                        <div>
-                          <h4 className="font-semibold mt-4 mb-2">Body</h4>
-                          <div className="bg-muted rounded-md max-h-96 overflow-auto">
-                             <CodeBlock code={typeof response === 'object' ? JSON.stringify(response, null, 2) : String(response)} />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
+    <div className="container mx-auto py-8">
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-4">
+          <TestTube className="h-8 w-8 text-primary" />
+          <div>
+            <h1 className="text-3xl font-bold">API Testing Suite</h1>
+            <p className="text-muted-foreground">
+              Comprehensive API testing and monitoring tools
+            </p>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <Card className="border-blue-200 bg-blue-50/50">
+            <CardContent className="p-4 text-center">
+              <Zap className="h-6 w-6 text-blue-600 mx-auto mb-2" />
+              <h3 className="font-medium text-blue-900">Fast Testing</h3>
+              <p className="text-xs text-blue-700">Quick API response testing</p>
+            </CardContent>
+          </Card>
+          <Card className="border-green-200 bg-green-50/50">
+            <CardContent className="p-4 text-center">
+              <Globe className="h-6 w-6 text-green-600 mx-auto mb-2" />
+              <h3 className="font-medium text-green-900">Global Reach</h3>
+              <p className="text-xs text-green-700">Test APIs worldwide</p>
+            </CardContent>
+          </Card>
+          <Card className="border-purple-200 bg-purple-50/50">
+            <CardContent className="p-4 text-center">
+              <Shield className="h-6 w-6 text-purple-600 mx-auto mb-2" />
+              <h3 className="font-medium text-purple-900">Secure</h3>
+              <p className="text-xs text-purple-700">Protected testing environment</p>
+            </CardContent>
+          </Card>
+          <Card className="border-orange-200 bg-orange-50/50">
+            <CardContent className="p-4 text-center">
+              <TestTube className="h-6 w-6 text-orange-600 mx-auto mb-2" />
+              <h3 className="font-medium text-orange-900">Advanced</h3>
+              <p className="text-xs text-orange-700">Full HTTP method support</p>
             </CardContent>
           </Card>
         </div>
-      </main>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <EnhancedApiTester />
+        </div>
+        <div>
+          <ApiStatsCard />
+        </div>
+      </div>
     </div>
   );
-};
-
-export default ApiTesterPage;
+}

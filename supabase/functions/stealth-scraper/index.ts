@@ -5,8 +5,8 @@ import puppeteer, { Browser, Page } from 'https://deno.land/x/puppeteer@16.2.0/m
 import { corsHeaders } from '../_shared/cors.ts'
 
 /**
- * Level 4: Advanced Stealth Scraping Engine
- * Implements sophisticated anti-detection techniques and distributed architecture
+ * Level 4: Enhanced Stealth Scraping Engine
+ * Implements comprehensive anti-detection and distributed architecture
  */
 
 interface ScrapeJob {
@@ -19,6 +19,11 @@ interface ScrapeJob {
   anti_detection_profile: string;
   created_at: string;
   scheduled_at?: string;
+  started_at?: string;
+  completed_at?: string;
+  success?: boolean;
+  result_data?: any;
+  error_message?: string;
 }
 
 interface StealthProfile {
@@ -38,8 +43,7 @@ interface StealthProfile {
 }
 
 /**
- * Advanced Browser Fingerprint Manager
- * Rotates fingerprints to avoid detection
+ * Enhanced Browser Fingerprint Manager
  */
 class BrowserFingerprintManager {
   private static profiles: StealthProfile[] = [
@@ -112,11 +116,14 @@ class BrowserFingerprintManager {
   static getProfileByName(name: string): StealthProfile | undefined {
     return this.profiles.find(p => p.name === name);
   }
+
+  static getAllProfiles(): StealthProfile[] {
+    return this.profiles;
+  }
 }
 
 /**
- * Human Behavior Simulator
- * Mimics human-like interactions to avoid bot detection
+ * Enhanced Human Behavior Simulator
  */
 class HumanBehaviorSimulator {
   private page: Page;
@@ -125,34 +132,30 @@ class HumanBehaviorSimulator {
     this.page = page;
   }
 
-  // Simulate human-like mouse movements
   async humanMouseMovement(x: number, y: number): Promise<void> {
     const steps = Math.floor(Math.random() * 20) + 10;
-    const currentPosition = await this.page.evaluate(() => ({ x: 0, y: 0 }));
     
     for (let i = 0; i <= steps; i++) {
       const progress = i / steps;
       const easeProgress = this.easeInOutCubic(progress);
       
-      const currentX = currentPosition.x + (x - currentPosition.x) * easeProgress;
-      const currentY = currentPosition.y + (y - currentPosition.y) * easeProgress;
+      const currentX = x * easeProgress;
+      const currentY = y * easeProgress;
       
       await this.page.mouse.move(currentX, currentY);
       await this.randomDelay(5, 15);
     }
   }
 
-  // Simulate human-like typing with random delays
   async humanTypeText(selector: string, text: string): Promise<void> {
     await this.page.focus(selector);
     
     for (const char of text) {
       await this.page.keyboard.type(char);
-      await this.randomDelay(50, 150); // Human typing speed variation
+      await this.randomDelay(50, 150);
     }
   }
 
-  // Simulate human-like scrolling patterns
   async humanScroll(): Promise<void> {
     const scrollCount = Math.floor(Math.random() * 5) + 3;
     
@@ -166,7 +169,6 @@ class HumanBehaviorSimulator {
     }
   }
 
-  // Simulate random page interactions
   async simulateRandomInteractions(): Promise<void> {
     try {
       // Random mouse movements
@@ -180,7 +182,7 @@ class HumanBehaviorSimulator {
       // Random scrolling
       await this.humanScroll();
 
-      // Random link hover (without clicking)
+      // Random link hover
       const links = await this.page.$$('a');
       if (links.length > 0) {
         const randomLink = links[Math.floor(Math.random() * Math.min(links.length, 5))];
@@ -191,7 +193,7 @@ class HumanBehaviorSimulator {
         }
       }
     } catch (error) {
-      console.log('Random interaction simulation completed with minor errors:', error);
+      console.log('Random interaction simulation completed:', error);
     }
   }
 
@@ -206,8 +208,7 @@ class HumanBehaviorSimulator {
 }
 
 /**
- * Advanced Stealth Browser Controller
- * Implements comprehensive anti-detection techniques
+ * Enhanced Stealth Browser Controller
  */
 class StealthBrowserController {
   private browser: Browser | null = null;
@@ -234,8 +235,6 @@ class StealthBrowserController {
         '--disable-default-apps',
         '--disable-extensions',
         '--disable-plugins',
-        '--disable-images', // Speed optimization
-        '--disable-javascript', // Can be enabled per page if needed
         '--user-agent=' + this.profile.userAgent,
         `--window-size=${this.profile.viewport.width},${this.profile.viewport.height}`,
         '--lang=' + this.profile.locale
@@ -250,7 +249,6 @@ class StealthBrowserController {
   private async applyStealthTechniques(): Promise<void> {
     if (!this.page) return;
 
-    // Set viewport and device metrics
     await this.page.setViewport({
       width: this.profile.viewport.width,
       height: this.profile.viewport.height,
@@ -260,15 +258,13 @@ class StealthBrowserController {
       isLandscape: this.profile.isLandscape,
     });
 
-    // Override user agent
     await this.page.setUserAgent(this.profile.userAgent);
 
-    // Set language and timezone
     await this.page.setExtraHTTPHeaders({
       'Accept-Language': this.profile.locale,
     });
 
-    // Stealth JavaScript injections
+    // Enhanced stealth JavaScript injections
     await this.page.evaluateOnNewDocument(() => {
       // Remove webdriver property
       Object.defineProperty(navigator, 'webdriver', {
@@ -303,7 +299,7 @@ class StealthBrowserController {
         };
       }
 
-      // Override automation detection
+      // Remove automation detection
       delete window.navigator.__proto__.webdriver;
     });
 
@@ -329,7 +325,6 @@ class StealthBrowserController {
       const originalToDataURL = HTMLCanvasElement.prototype.toDataURL;
       HTMLCanvasElement.prototype.toDataURL = function(...args) {
         const dataURL = originalToDataURL.apply(this, args);
-        // Add slight noise to canvas fingerprint
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
         if (ctx) {
@@ -340,31 +335,63 @@ class StealthBrowserController {
       };
     }, this.profile);
 
-    console.log('Stealth techniques applied successfully');
+    console.log('Advanced stealth techniques applied successfully');
   }
 
   async navigateWithStealth(url: string): Promise<void> {
     if (!this.page || !this.humanBehavior) throw new Error('Browser not initialized');
 
-    console.log(`Navigating to ${url} with stealth mode...`);
+    console.log(`Navigating to ${url} with enhanced stealth mode...`);
 
-    // Random delay before navigation
     await new Promise(resolve => setTimeout(resolve, Math.random() * 2000 + 1000));
 
-    // Navigate with random timeout
-    const timeout = Math.random() * 10000 + 30000; // 30-40 seconds
+    const timeout = Math.random() * 10000 + 30000;
     await this.page.goto(url, { 
       waitUntil: ['networkidle0', 'domcontentloaded'],
       timeout: timeout
     });
 
-    // Simulate human-like behavior after page load
     await this.humanBehavior.simulateRandomInteractions();
   }
 
   async getPageContent(): Promise<string> {
     if (!this.page) throw new Error('Page not initialized');
     return await this.page.content();
+  }
+
+  async extractStructuredData(): Promise<any> {
+    if (!this.page) throw new Error('Page not initialized');
+    
+    return await this.page.evaluate(() => {
+      const data: any = {};
+      
+      // Extract title
+      data.title = document.title;
+      
+      // Extract meta description
+      const metaDescription = document.querySelector('meta[name="description"]');
+      data.description = metaDescription ? metaDescription.getAttribute('content') : '';
+      
+      // Extract headings
+      data.headings = Array.from(document.querySelectorAll('h1, h2, h3')).map(h => ({
+        tag: h.tagName.toLowerCase(),
+        text: h.textContent?.trim()
+      }));
+      
+      // Extract links
+      data.links = Array.from(document.querySelectorAll('a[href]')).slice(0, 50).map(a => ({
+        href: a.getAttribute('href'),
+        text: a.textContent?.trim()
+      }));
+      
+      // Extract images
+      data.images = Array.from(document.querySelectorAll('img[src]')).slice(0, 20).map(img => ({
+        src: img.getAttribute('src'),
+        alt: img.getAttribute('alt')
+      }));
+      
+      return data;
+    });
   }
 
   async close(): Promise<void> {
@@ -375,8 +402,7 @@ class StealthBrowserController {
 }
 
 /**
- * Distributed Job Queue Manager
- * Handles job distribution and load balancing across workers
+ * Enhanced Distributed Job Manager
  */
 class DistributedJobManager {
   private supabase: any;
@@ -399,9 +425,11 @@ class DistributedJobManager {
     };
 
     try {
-      await this.supabase
+      const { error } = await this.supabase
         .from('scrape_jobs')
         .insert(job);
+      
+      if (error) throw error;
       
       console.log(`Job enqueued: ${jobId} for URL: ${url}`);
       return jobId;
@@ -413,12 +441,11 @@ class DistributedJobManager {
 
   async getNextJob(workerRegion?: string): Promise<ScrapeJob | null> {
     try {
-      // Get highest priority job that hasn't been processed
       const { data: jobs, error } = await this.supabase
         .from('scrape_jobs')
         .select('*')
         .is('started_at', null)
-        .lte('retry_count', this.supabase.rpc('get_max_retries'))
+        .lte('retry_count', 3)
         .order('priority', { ascending: false })
         .order('created_at', { ascending: true })
         .limit(1);
@@ -428,14 +455,15 @@ class DistributedJobManager {
 
       const job = jobs[0];
 
-      // Mark job as started
-      await this.supabase
+      const { error: updateError } = await this.supabase
         .from('scrape_jobs')
         .update({ 
           started_at: new Date().toISOString(),
           worker_region: workerRegion 
         })
         .eq('id', job.id);
+
+      if (updateError) throw updateError;
 
       return job;
     } catch (error) {
@@ -455,13 +483,20 @@ class DistributedJobManager {
         updateData.result_data = result;
       } else if (!success && error) {
         updateData.error_message = error;
-        updateData.retry_count = this.supabase.rpc('increment_retry_count', { job_id: jobId });
+        
+        // Increment retry count
+        const { error: retryError } = await this.supabase
+          .rpc('increment_retry_count', { job_id: jobId });
+        
+        if (retryError) console.error('Failed to increment retry count:', retryError);
       }
 
-      await this.supabase
+      const { error: updateError } = await this.supabase
         .from('scrape_jobs')
         .update(updateData)
         .eq('id', jobId);
+
+      if (updateError) throw updateError;
 
       console.log(`Job ${jobId} marked as ${success ? 'completed' : 'failed'}`);
     } catch (error) {
@@ -469,18 +504,14 @@ class DistributedJobManager {
     }
   }
 
-  async getJobStats(): Promise<{
-    total: number;
-    pending: number;
-    processing: number;
-    completed: number;
-    failed: number;
-  }> {
+  async getJobStats(): Promise<any> {
     try {
-      const { data: stats } = await this.supabase
+      const { data, error } = await this.supabase
         .rpc('get_job_statistics');
       
-      return stats || { total: 0, pending: 0, processing: 0, completed: 0, failed: 0 };
+      if (error) throw error;
+      
+      return data || { total: 0, pending: 0, processing: 0, completed: 0, failed: 0 };
     } catch (error) {
       console.error('Failed to get job stats:', error);
       return { total: 0, pending: 0, processing: 0, completed: 0, failed: 0 };
@@ -489,41 +520,7 @@ class DistributedJobManager {
 }
 
 /**
- * Proxy Rotation Manager
- * Manages residential proxy rotation for IP diversity
- */
-class ProxyRotationManager {
-  private static proxyList: string[] = [
-    // Residential proxy endpoints would be configured here
-    // Format: 'http://username:password@proxy-server:port'
-  ];
-
-  static getRandomProxy(): string | null {
-    if (this.proxyList.length === 0) return null;
-    return this.proxyList[Math.floor(Math.random() * this.proxyList.length)];
-  }
-
-  static addProxy(proxyUrl: string): void {
-    if (!this.proxyList.includes(proxyUrl)) {
-      this.proxyList.push(proxyUrl);
-    }
-  }
-
-  static removeProxy(proxyUrl: string): void {
-    const index = this.proxyList.indexOf(proxyUrl);
-    if (index > -1) {
-      this.proxyList.splice(index, 1);
-    }
-  }
-
-  static getProxyCount(): number {
-    return this.proxyList.length;
-  }
-}
-
-/**
- * CAPTCHA Solver Integration
- * Integrates with CAPTCHA solving services
+ * CAPTCHA Detection and Solving
  */
 class CaptchaSolver {
   private apiKey: string | undefined;
@@ -532,31 +529,8 @@ class CaptchaSolver {
     this.apiKey = Deno.env.get('CAPTCHA_SOLVER_API_KEY');
   }
 
-  async solveCaptcha(captchaImage: string, captchaType: string = 'image'): Promise<string | null> {
-    if (!this.apiKey) {
-      console.log('CAPTCHA solver API key not configured');
-      return null;
-    }
-
-    try {
-      // Integration with services like 2captcha, AntiCaptcha, etc.
-      // This is a placeholder for the actual CAPTCHA solving implementation
-      console.log(`Attempting to solve ${captchaType} CAPTCHA...`);
-      
-      // Simulate CAPTCHA solving delay
-      await new Promise(resolve => setTimeout(resolve, 10000));
-      
-      // Return mock solution for demo purposes
-      return 'SOLVED_CAPTCHA_TEXT';
-    } catch (error) {
-      console.error('CAPTCHA solving failed:', error);
-      return null;
-    }
-  }
-
   async detectCaptcha(page: Page): Promise<{ found: boolean; type: string; element?: any }> {
     try {
-      // Detect common CAPTCHA patterns
       const captchaSelectors = [
         'iframe[src*="recaptcha"]',
         '.g-recaptcha',
@@ -601,12 +575,10 @@ serve(async (req) => {
 
     switch (action) {
       case 'scrape': {
-        // Get job from queue or process direct request
         const targetUrl = url.searchParams.get('url');
         const useQueue = url.searchParams.get('queue') === 'true';
         
         if (useQueue) {
-          // Process jobs from queue
           const job = await jobManager.getNextJob('primary');
           
           if (!job) {
@@ -622,29 +594,23 @@ serve(async (req) => {
           console.log(`Processing queued job: ${job.id} for ${job.url}`);
           
           try {
-            // Get stealth profile for this job
             const profile = BrowserFingerprintManager.getProfileByName(job.anti_detection_profile) 
               || BrowserFingerprintManager.getRandomProfile();
             
             const stealthBrowser = new StealthBrowserController(profile);
             await stealthBrowser.initialize();
             
-            // Navigate with stealth techniques
             await stealthBrowser.navigateWithStealth(job.url);
             
-            // Check for CAPTCHA
             const captchaDetection = await captchaSolver.detectCaptcha(stealthBrowser.page!);
-            if (captchaDetection.found) {
-              console.log('CAPTCHA detected, attempting to solve...');
-              // CAPTCHA solving would be implemented here
-            }
-            
             const html = await stealthBrowser.getPageContent();
+            const structuredData = await stealthBrowser.extractStructuredData();
+            
             await stealthBrowser.close();
             
-            // Mark job as completed
             await jobManager.completeJob(job.id, true, { 
-              html, 
+              html: html.substring(0, 10000),
+              structured_data: structuredData,
               captcha_encountered: captchaDetection.found,
               profile_used: profile.name
             });
@@ -652,7 +618,8 @@ serve(async (req) => {
             return new Response(JSON.stringify({
               job_id: job.id,
               url: job.url,
-              html: html.substring(0, 5000) + '...', // Truncate for response
+              html: html.substring(0, 5000) + '...',
+              structured_data: structuredData,
               metadata: {
                 profile_used: profile.name,
                 captcha_encountered: captchaDetection.found,
@@ -679,7 +646,6 @@ serve(async (req) => {
           }
           
         } else if (targetUrl) {
-          // Direct scraping request
           const profile = BrowserFingerprintManager.getRandomProfile();
           const stealthBrowser = new StealthBrowserController(profile);
           
@@ -689,17 +655,18 @@ serve(async (req) => {
             
             const captchaDetection = await captchaSolver.detectCaptcha(stealthBrowser.page!);
             const html = await stealthBrowser.getPageContent();
+            const structuredData = await stealthBrowser.extractStructuredData();
             
             await stealthBrowser.close();
             
             return new Response(JSON.stringify({
               url: targetUrl,
               html: html.substring(0, 5000) + '...',
+              structured_data: structuredData,
               metadata: {
                 profile_used: profile.name,
                 captcha_encountered: captchaDetection.found,
-                content_length: html.length,
-                proxy_count: ProxyRotationManager.getProxyCount()
+                content_length: html.length
               }
             }), {
               status: 200,
@@ -754,15 +721,15 @@ serve(async (req) => {
         const stats = await jobManager.getJobStats();
         const systemStatus = {
           ...stats,
-          available_profiles: BrowserFingerprintManager.profiles.length,
-          proxy_count: ProxyRotationManager.getProxyCount(),
+          available_profiles: BrowserFingerprintManager.getAllProfiles().length,
           captcha_solver_configured: !!Deno.env.get('CAPTCHA_SOLVER_API_KEY'),
           stealth_features: [
             'Browser Fingerprint Rotation',
             'Human Behavior Simulation',
             'Anti-Detection Techniques',
             'Request Pattern Randomization',
-            'Distributed Job Processing'
+            'Distributed Job Processing',
+            'Enhanced Data Extraction'
           ]
         };
         
@@ -784,7 +751,7 @@ serve(async (req) => {
     }
 
   } catch (error) {
-    console.error('Level 4 Stealth Scraper Error:', error);
+    console.error('Enhanced Stealth Scraper Error:', error);
     return new Response(JSON.stringify({ 
       error: 'Internal server error',
       details: error.message

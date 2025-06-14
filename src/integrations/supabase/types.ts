@@ -386,6 +386,57 @@ export type Database = {
           },
         ]
       }
+      scrape_jobs: {
+        Row: {
+          anti_detection_profile: string
+          completed_at: string | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          max_retries: number | null
+          priority: string | null
+          result_data: Json | null
+          retry_count: number | null
+          scheduled_at: string | null
+          started_at: string | null
+          success: boolean | null
+          url: string
+          worker_region: string | null
+        }
+        Insert: {
+          anti_detection_profile: string
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          max_retries?: number | null
+          priority?: string | null
+          result_data?: Json | null
+          retry_count?: number | null
+          scheduled_at?: string | null
+          started_at?: string | null
+          success?: boolean | null
+          url: string
+          worker_region?: string | null
+        }
+        Update: {
+          anti_detection_profile?: string
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          max_retries?: number | null
+          priority?: string | null
+          result_data?: Json | null
+          retry_count?: number | null
+          scheduled_at?: string | null
+          started_at?: string | null
+          success?: boolean | null
+          url?: string
+          worker_region?: string | null
+        }
+        Relationships: []
+      }
       skill_certificates: {
         Row: {
           algorand_asset_id: string | null
@@ -642,6 +693,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_job_statistics: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      increment_retry_count: {
+        Args: { job_id: string }
+        Returns: number
+      }
       update_enrollment_progress: {
         Args: { p_user_id: string; p_course_id: number; p_progress: number }
         Returns: undefined
