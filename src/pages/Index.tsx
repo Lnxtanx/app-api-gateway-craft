@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import Header from '@/components/Header';
 import CodeBlock from '@/components/CodeBlock';
@@ -44,16 +43,23 @@ const Index = () => {
     setIsLoading(true);
     setApiResult(null);
 
-    // This part is a simulation. A real implementation would call a backend service.
-    setTimeout(async () => {
-      const randomId = Math.random().toString(36).substring(2, 10);
-      const generatedApiKey = `ac_live_${Math.random().toString(36).substring(2)}`;
-      const generatedEndpoint = `https://api.apicraft.dev/v1/extract/${randomId}`;
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-api', {
+        body: { source_url: url },
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
       
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
       const result = {
-        endpoint: generatedEndpoint,
-        apiKey: generatedApiKey,
-        curl: `curl "${generatedEndpoint}" \\\n  -H "Authorization: Bearer ${generatedApiKey}"`,
+        endpoint: data.api_endpoint,
+        apiKey: data.api_key,
+        curl: `curl "${data.api_endpoint}" \\\n  -H "Authorization: Bearer ${data.api_key}"`,
         response: JSON.stringify({
           data: {
             title: "Example Scraped Data",
@@ -66,25 +72,15 @@ const Index = () => {
       
       setApiResult(result);
 
-      const { error } = await supabase
-        .from('generated_apis')
-        .insert({
-          user_id: user.id,
-          source_url: url,
-          api_endpoint: result.endpoint,
-          api_key: result.apiKey,
-        });
-
-      if (error) {
-        toast({
-          title: "Error Saving API",
-          description: error.message,
-          variant: "destructive",
-        });
-      }
-
+    } catch (error: any) {
+       toast({
+        title: "Error Generating API",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 2000);
+    }
   };
 
   return (
