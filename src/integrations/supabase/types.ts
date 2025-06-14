@@ -231,6 +231,33 @@ export type Database = {
         }
         Relationships: []
       }
+      generated_apis: {
+        Row: {
+          api_endpoint: string
+          api_key: string
+          created_at: string
+          id: string
+          source_url: string
+          user_id: string
+        }
+        Insert: {
+          api_endpoint: string
+          api_key: string
+          created_at?: string
+          id?: string
+          source_url: string
+          user_id: string
+        }
+        Update: {
+          api_endpoint?: string
+          api_key?: string
+          created_at?: string
+          id?: string
+          source_url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       lessons: {
         Row: {
           content: string | null

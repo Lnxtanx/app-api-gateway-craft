@@ -6,6 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowRight, LoaderCircle } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from "@/components/ui/use-toast";
+import { Link } from 'react-router-dom';
 
 const Index = () => {
   const [url, setUrl] = useState('');
@@ -17,18 +21,36 @@ const Index = () => {
     response: string;
   } | null>(null);
 
-  const handleGenerateApi = (e: React.FormEvent) => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const handleGenerateApi = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!url) return;
+
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: (
+          <p>
+            Please <Link to="/auth" className="font-bold underline">log in or sign up</Link> to generate an API.
+          </p>
+        ),
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     setApiResult(null);
 
-    setTimeout(() => {
+    // This part is a simulation. A real implementation would call a backend service.
+    setTimeout(async () => {
       const randomId = Math.random().toString(36).substring(2, 10);
       const generatedApiKey = `ac_live_${Math.random().toString(36).substring(2)}`;
       const generatedEndpoint = `https://api.apicraft.dev/v1/extract/${randomId}`;
       
-      setApiResult({
+      const result = {
         endpoint: generatedEndpoint,
         apiKey: generatedApiKey,
         curl: `curl "${generatedEndpoint}" \\\n  -H "Authorization: Bearer ${generatedApiKey}"`,
@@ -40,7 +62,27 @@ const Index = () => {
           },
           source_url: url,
         }, null, 2),
-      });
+      };
+      
+      setApiResult(result);
+
+      const { error } = await supabase
+        .from('generated_apis')
+        .insert({
+          user_id: user.id,
+          source_url: url,
+          api_endpoint: result.endpoint,
+          api_key: result.apiKey,
+        });
+
+      if (error) {
+        toast({
+          title: "Error Saving API",
+          description: error.message,
+          variant: "destructive",
+        });
+      }
+
       setIsLoading(false);
     }, 2000);
   };
@@ -56,7 +98,7 @@ const Index = () => {
           Enter a URL, and we'll give you a structured API to access its content. No-code, no-hassle, instant results.
         </p>
 
-        <form onSubmit={handleGenerateApi} className="w-full max-w-xl flex items-center gap-2 mb-12">
+        <form onSubmit={handleGenerateApi} className="w-full max-w-xl flex items-center gap-2 mb-8">
           <Input 
             type="url"
             placeholder="https://example.com"
@@ -75,6 +117,12 @@ const Index = () => {
             )}
           </Button>
         </form>
+
+        {!user && !isLoading && (
+          <p className="text-lg text-amber-500 bg-amber-500/10 p-4 rounded-md mb-8 animate-in fade-in-50">
+            Please <Link to="/auth" className="font-bold underline">log in</Link> to save and manage your generated APIs.
+          </p>
+        )}
 
         {isLoading && (
            <div className="flex flex-col items-center gap-4">
@@ -130,4 +178,3 @@ const Index = () => {
 };
 
 export default Index;
-
