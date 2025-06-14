@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import Header from '@/components/Header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -96,7 +95,7 @@ const ApiTesterPage = () => {
                   <div>
                     <h3 className="text-lg font-semibold mb-2 text-green-600">Success Response</h3>
                     <div className="bg-muted rounded-md p-4 max-h-96 overflow-auto">
-                      <CodeBlock language="json" code={JSON.stringify(response, null, 2)} />
+                      <CodeBlock code={JSON.stringify(response, null, 2)} />
                     </div>
                   </div>
                 )}
