@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import Header from '@/components/Header';
 import CodeBlock from '@/components/CodeBlock';
@@ -59,7 +60,7 @@ const Index = () => {
       // Fetch initial data from the new endpoint to show a real example
       const initialScrapeResponse = await fetch(generatedApiData.api_endpoint, {
         headers: {
-          'Authorization': `Bearer ${generatedApiData.api_key}`,
+          'x-api-key': generatedApiData.api_key,
           'Content-Type': 'application/json'
         }
       });
@@ -74,7 +75,7 @@ const Index = () => {
       const result = {
         endpoint: generatedApiData.api_endpoint,
         apiKey: generatedApiData.api_key,
-        curl: `curl "${generatedApiData.api_endpoint}" \\\n  -H "Authorization: Bearer ${generatedApiData.api_key}"`,
+        curl: `curl "${generatedApiData.api_endpoint}" \\\n  -H "x-api-key: ${generatedApiData.api_key}"`,
         response: JSON.stringify(scrapedData, null, 2),
       };
       

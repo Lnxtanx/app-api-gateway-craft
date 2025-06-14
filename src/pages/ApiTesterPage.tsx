@@ -37,7 +37,7 @@ const ApiTesterPage = () => {
     try {
       const headers: Record<string, string> = {};
       if (apiKey) {
-        headers['Authorization'] = `Bearer ${apiKey}`;
+        headers['x-api-key'] = apiKey;
       }
 
       if (['POST', 'PUT', 'PATCH'].includes(method) && body) {
@@ -151,7 +151,7 @@ const ApiTesterPage = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="apiKey">API Key (Bearer Token)</Label>
+                  <Label htmlFor="apiKey">API Key</Label>
                   <Input
                     id="apiKey"
                     type="text"

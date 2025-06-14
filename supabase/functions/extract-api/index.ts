@@ -31,9 +31,9 @@ serve(async (req) => {
     const endpointPath = `/functions/v1/extract-api/${randomId}`
     
     // 2. Get API Key from header
-    const apiKey = req.headers.get('Authorization')?.replace('Bearer ', '')
+    const apiKey = req.headers.get('x-api-key')
     if (!apiKey) {
-      return new Response(JSON.stringify({ error: 'API key is required.' }), {
+      return new Response(JSON.stringify({ error: 'API key (x-api-key header) is required.' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
