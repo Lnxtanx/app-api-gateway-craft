@@ -1,30 +1,42 @@
 
 import { useState } from 'react';
-import CodeBlock from '@/components/CodeBlock';
 import AdvancedApiFeatures from '@/components/AdvancedApiFeatures';
 import RealTimeNotifications from '@/components/RealTimeNotifications';
 import IntelligentContentAnalyzer from '@/components/IntelligentContentAnalyzer';
+import ApiResponseDisplay from '@/components/ApiResponseDisplay';
+import ApiQueryInterface from '@/components/ApiQueryInterface';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowRight, LoaderCircle, Brain, Zap } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowRight, LoaderCircle, Brain, Zap, Database, Search } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from "@/components/ui/use-toast";
 import { Link } from 'react-router-dom';
 
+interface QueryParams {
+  search?: string;
+  page: number;
+  limit: number;
+  sort?: string;
+  order: 'asc' | 'desc';
+  filters: { [key: string]: string };
+}
+
 const Index = () => {
   const [url, setUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isQuerying, setIsQuerying] = useState(false);
   const [showIntelligentAnalysis, setShowIntelligentAnalysis] = useState(false);
   const [scrapedHtml, setScrapedHtml] = useState('');
   const [apiResult, setApiResult] = useState<{
     endpoint: string;
     apiKey: string;
-    curl: string;
-    response: string;
     responseData?: any;
   } | null>(null);
+  const [queryResult, setQueryResult] = useState<any>(null);
+  const [availableFields, setAvailableFields] = useState<string[]>([]);
 
   const { user } = useAuth();
   const { toast } = useToast();
@@ -33,12 +45,10 @@ const Index = () => {
     e.preventDefault();
     if (!url) return;
 
-    // --- Start Debugging Logs ---
     console.log("Attempting to generate API...");
     const { data: { session } } = await supabase.auth.getSession();
     console.log("User object from AuthContext:", user);
     console.log("Current session from Supabase client:", session);
-    // --- End Debugging Logs ---
 
     if (!user) {
       toast({
@@ -55,10 +65,10 @@ const Index = () => {
 
     setIsLoading(true);
     setApiResult(null);
+    setQueryResult(null);
     setShowIntelligentAnalysis(false);
 
     try {
-      // First, let's get the HTML content for intelligent analysis
       const { data: generatedApiData, error } = await supabase.functions.invoke('generate-api', {
         body: { source_url: url },
       });
@@ -73,7 +83,7 @@ const Index = () => {
         throw new Error(generatedApiData.error);
       }
 
-      // Fetch initial data from the new endpoint to show a real example
+      // Fetch initial data from the new endpoint to show enhanced response
       const initialScrapeResponse = await fetch(generatedApiData.api_endpoint, {
         headers: {
           'x-api-key': generatedApiData.api_key,
@@ -88,8 +98,14 @@ const Index = () => {
       
       const scrapedData = await initialScrapeResponse.json();
 
+      // Extract available fields for query interface
+      if (scrapedData.data && scrapedData.data.length > 0) {
+        const fields = Object.keys(scrapedData.data[0]);
+        setAvailableFields(fields);
+      }
+
       // Extract HTML content for intelligent analysis
-      if (scrapedData.source_url) {
+      if (scrapedData.api?.source_url) {
         try {
           const htmlResponse = await fetch(url);
           const htmlContent = await htmlResponse.text();
@@ -103,17 +119,20 @@ const Index = () => {
       const result = {
         endpoint: generatedApiData.api_endpoint,
         apiKey: generatedApiData.api_key,
-        curl: `curl "${generatedApiData.api_endpoint}" \\\n  -H "x-api-key: ${generatedApiData.api_key}"`,
-        response: JSON.stringify(scrapedData, null, 2),
         responseData: scrapedData,
       };
       
       setApiResult(result);
+      setQueryResult(scrapedData);
+
+      toast({
+        title: "API Generated Successfully",
+        description: `Your API is ready with ${scrapedData.metadata?.total || 0} items and ${(scrapedData.quality?.score * 100).toFixed(1)}% data quality.`,
+      });
 
     } catch (error: any) {
        let errorMessage = error.message;
        try {
-         // Supabase function errors can be stringified JSON, try to parse for a cleaner message.
          const parsed = JSON.parse(error.message);
          errorMessage = parsed.message || parsed.error || errorMessage;
        } catch (e) {
@@ -126,6 +145,58 @@ const Index = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleQuery = async (params: QueryParams) => {
+    if (!apiResult) return;
+
+    setIsQuerying(true);
+    try {
+      // Build query URL
+      const queryParams = new URLSearchParams();
+      if (params.search) queryParams.append('search', params.search);
+      if (params.sort) {
+        queryParams.append('sort', params.sort);
+        queryParams.append('order', params.order);
+      }
+      queryParams.append('page', params.page.toString());
+      queryParams.append('limit', params.limit.toString());
+      
+      Object.entries(params.filters).forEach(([key, value]) => {
+        queryParams.append(key, value);
+      });
+
+      const queryUrl = `${apiResult.endpoint}?${queryParams.toString()}`;
+      
+      const response = await fetch(queryUrl, {
+        headers: {
+          'x-api-key': apiResult.apiKey,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(`Query failed: ${errData.error || response.statusText}`);
+      }
+
+      const result = await response.json();
+      setQueryResult(result);
+
+      toast({
+        title: "Query Executed",
+        description: `Found ${result.metadata?.total || 0} items in ${result.metadata?.executionTime || 0}ms`,
+      });
+
+    } catch (error: any) {
+      toast({
+        title: "Query Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsQuerying(false);
     }
   };
 
@@ -181,8 +252,8 @@ const Index = () => {
             <div className="text-sm text-muted-foreground max-w-md">
               <p className="flex items-center gap-2"><Brain className="h-4 w-4" /> AI is analyzing content patterns and entities</p>
               <p className="flex items-center gap-2"><Zap className="h-4 w-4" /> Setting up real-time synchronization</p>
-              <p className="flex items-center gap-2"><Brain className="h-4 w-4" /> Enhancing data with sentiment analysis</p>
-              <p className="flex items-center gap-2"><ArrowRight className="h-4 w-4" /> Generating smart GraphQL schema</p>
+              <p className="flex items-center gap-2"><Database className="h-4 w-4" /> Enhancing data with quality assessment</p>
+              <p className="flex items-center gap-2"><Search className="h-4 w-4" /> Generating smart query interface</p>
             </div>
            </div>
         )}
@@ -206,47 +277,51 @@ const Index = () => {
         )}
 
         {apiResult && (
-          <div className="w-full max-w-4xl grid gap-6 text-left animate-in fade-in-50 duration-500">
-            {/* Show advanced features if available */}
-            {apiResult.responseData && (
-              <AdvancedApiFeatures apiData={apiResult.responseData} />
-            )}
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>API Endpoint</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CodeBlock code={apiResult.endpoint} />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>API Key</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CodeBlock code={apiResult.apiKey} />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>cURL Example</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CodeBlock code={apiResult.curl} />
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Example Response</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CodeBlock code={apiResult.response} />
-              </CardContent>
-            </Card>
+          <div className="w-full max-w-6xl text-left animate-in fade-in-50 duration-500">
+            <Tabs defaultValue="response" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="response">API Response</TabsTrigger>
+                <TabsTrigger value="query">Query Interface</TabsTrigger>
+                <TabsTrigger value="features">Advanced Features</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="response" className="space-y-6">
+                {queryResult ? (
+                  <ApiResponseDisplay
+                    data={queryResult}
+                    endpoint={apiResult.endpoint}
+                    apiKey={apiResult.apiKey}
+                  />
+                ) : (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>API Generated</CardTitle>
+                      <CardDescription>Your API is ready! Use the Query Interface to test it.</CardDescription>
+                    </CardHeader>
+                  </Card>
+                )}
+              </TabsContent>
+
+              <TabsContent value="query" className="space-y-6">
+                <ApiQueryInterface
+                  endpoint={apiResult.endpoint}
+                  apiKey={apiResult.apiKey}
+                  onQuery={handleQuery}
+                  isLoading={isQuerying}
+                  availableFields={availableFields}
+                />
+              </TabsContent>
+
+              <TabsContent value="features" className="space-y-6">
+                {apiResult.responseData && (
+                  <AdvancedApiFeatures apiData={apiResult.responseData} />
+                )}
+              </TabsContent>
+            </Tabs>
           </div>
         )}
       </main>
+      
       <footer className="py-4 border-t">
         <div className="container mx-auto text-center text-sm text-muted-foreground">
           Built with love by Lovable.
