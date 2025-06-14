@@ -25,6 +25,7 @@ const Header = () => {
           <nav className="flex items-center gap-6 text-sm font-medium">
             <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Features</a>
             <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Pricing</a>
+            <Link to="/api-tester" className="text-muted-foreground hover:text-foreground transition-colors">API Tester</Link>
             <a href="#" className="text-muted-foreground hover:text-foreground transition-colors">Docs</a>
           </nav>
           {loading ? null : user ? (
