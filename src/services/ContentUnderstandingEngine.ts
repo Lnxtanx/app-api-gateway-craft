@@ -151,9 +151,9 @@ export class ContentUnderstandingEngine {
     listPatterns.forEach(pattern => {
       // Simulate counting elements (would use actual DOM parsing in real implementation)
       const elementRegex = new RegExp(pattern.selector.replace(/[\[\]]/g, ''), 'gi');
-      const matches = html.match(elementRegex) || [];
+      const matches = html.match(elementRegex);
       
-      if (matches.length > 2) {
+      if (matches && matches.length > 2) {
         patterns.push({
           type: pattern.type,
           selector: pattern.selector,
