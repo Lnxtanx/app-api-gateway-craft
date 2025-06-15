@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 import { BrowserFingerprintManager } from './browser-fingerprint-manager.ts';
@@ -12,7 +13,16 @@ serve(async (req) => {
   }
 
   try {
-    // Handle requests without body (like GET requests for system stats)
+    // Handle GET requests - always return system stats
+    if (req.method === 'GET') {
+      console.log('📊 Fetching system stats (GET request)...');
+      const stats = await getSystemStats();
+      return new Response(JSON.stringify(stats), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Handle POST requests
     let requestData = {};
     
     if (req.method === 'POST' && req.headers.get('content-type')?.includes('application/json')) {
@@ -35,9 +45,9 @@ serve(async (req) => {
 
     const { action, url, priority, stealth_level, scraping_intent } = requestData;
     
-    // Return system stats only for GET requests or when explicitly no action is provided
-    if (req.method === 'GET' || (!action && req.method !== 'POST')) {
-      console.log('📊 Fetching system stats...');
+    // If no action is provided in POST request, return system stats
+    if (!action) {
+      console.log('📊 Fetching system stats (no action in POST)...');
       const stats = await getSystemStats();
       return new Response(JSON.stringify(stats), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -70,14 +80,6 @@ serve(async (req) => {
         });
 
       default:
-        // If action is provided but not recognized, and it's a POST request with no action, return stats
-        if (!action) {
-          console.log('📊 Fetching system stats (no action in POST)...');
-          const stats = await getSystemStats();
-          return new Response(JSON.stringify(stats), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        }
         throw new Error(`Unknown action: ${action}`);
     }
 
