@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 import { BrowserFingerprintManager } from './browser-fingerprint-manager.ts';
@@ -12,10 +13,32 @@ serve(async (req) => {
   }
 
   try {
-    const { action, url, priority, stealth_level, scraping_intent } = await req.json();
+    // Handle requests without body (like GET requests for system stats)
+    let requestData = {};
     
-    // Default to returning system stats
-    if (!action) {
+    if (req.method === 'POST' && req.headers.get('content-type')?.includes('application/json')) {
+      const bodyText = await req.text();
+      if (bodyText && bodyText.trim()) {
+        try {
+          requestData = JSON.parse(bodyText);
+        } catch (parseError) {
+          console.error('❌ JSON parse error:', parseError);
+          return new Response(JSON.stringify({
+            error: 'Invalid JSON in request body',
+            timestamp: new Date().toISOString()
+          }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+      }
+    }
+
+    const { action, url, priority, stealth_level, scraping_intent } = requestData;
+    
+    // Default to returning system stats for GET requests or requests without action
+    if (!action || req.method === 'GET') {
+      console.log('📊 Fetching system stats...');
       const stats = await getSystemStats();
       return new Response(JSON.stringify(stats), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
