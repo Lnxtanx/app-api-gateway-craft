@@ -1,4 +1,3 @@
-
 import { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
@@ -9,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from '@/components/ui/button';
 import { LoaderCircle, AlertCircle, PlusCircle } from 'lucide-react';
 import CodeBlock from '@/components/CodeBlock';
+import Header from '@/components/Header';
 
 const fetchUserApis = async (userId: string) => {
   const { data, error } = await supabase
@@ -53,6 +53,7 @@ const DashboardPage = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
+      <Header />
       <main className="flex-grow container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-3xl font-bold tracking-tight">My APIs</h2>
