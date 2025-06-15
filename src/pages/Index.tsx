@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import Header from '@/components/Header';
 import AdvancedApiFeatures from '@/components/AdvancedApiFeatures';
@@ -10,11 +9,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowRight, LoaderCircle, Brain, Zap, Database, Search } from 'lucide-react';
+import { ArrowRight, LoaderCircle, Brain, Zap, Database, Search, Shield, Crown } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from "@/components/ui/use-toast";
 import { Link } from 'react-router-dom';
+import AdvancedLogger from '@/components/AdvancedLogger';
+import EnhancedStatusDashboard from '@/components/EnhancedStatusDashboard';
 
 interface QueryParams {
   search?: string;
@@ -39,6 +40,7 @@ const Index = () => {
   const [queryResult, setQueryResult] = useState<any>(null);
   const [availableFields, setAvailableFields] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState('response');
+  const [showAdvancedLogger, setShowAdvancedLogger] = useState(false);
 
   const { user } = useAuth();
   const { toast } = useToast();
@@ -66,6 +68,7 @@ const Index = () => {
     }
 
     setIsLoading(true);
+    setShowAdvancedLogger(true);
     setApiResult(null);
     setQueryResult(null);
     setShowIntelligentAnalysis(false);
@@ -158,6 +161,7 @@ const Index = () => {
       });
     } finally {
       setIsLoading(false);
+      setTimeout(() => setShowAdvancedLogger(false), 2000);
     }
   };
 
@@ -228,13 +232,20 @@ const Index = () => {
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       <Header />
       <main className="flex-grow container mx-auto px-4 py-16 flex flex-col items-center text-center">
-        <h2 className="text-4xl md:text-6xl font-extrabold tracking-tighter mb-4">
+        <h2 className="text-4xl md:text-6xl font-extrabold tracking-tighter mb-4 bg-gradient-to-r from-primary via-purple-500 to-blue-500 bg-clip-text text-transparent">
           Create an API from any website
         </h2>
         <p className="max-w-2xl text-lg md:text-xl text-muted-foreground mb-8">
           Enter a URL, and we'll give you a structured API to access its content. 
-          Now with Level 3 AI enhancement, real-time sync, and intelligent data processing.
+          Now with Level 4 Military-Grade AI enhancement, real-time sync, and intelligent data processing.
         </p>
+
+        {/* Enhanced Status Dashboard */}
+        {!isLoading && !apiResult && (
+          <div className="w-full max-w-6xl mb-8">
+            <EnhancedStatusDashboard />
+          </div>
+        )}
 
         <form onSubmit={handleGenerateApi} className="w-full max-w-xl flex items-center gap-2 mb-8">
           <Input 
@@ -243,9 +254,14 @@ const Index = () => {
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             required
-            className="h-12 text-base"
+            className="h-12 text-base border-2 focus:border-primary transition-colors"
           />
-          <Button type="submit" size="lg" className="h-12 gap-2" disabled={isLoading}>
+          <Button 
+            type="submit" 
+            size="lg" 
+            className="h-12 gap-2 bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 transition-all duration-300" 
+            disabled={isLoading}
+          >
             {isLoading ? (
               <LoaderCircle className="h-5 w-5 animate-spin" />
             ) : (
@@ -257,20 +273,44 @@ const Index = () => {
         </form>
 
         {!user && !isLoading && (
-          <p className="text-lg text-amber-500 bg-amber-500/10 p-4 rounded-md mb-8 animate-in fade-in-50">
-            Please <Link to="/auth" className="font-bold underline">log in</Link> to save and manage your generated APIs.
-          </p>
+          <div className="text-lg text-amber-600 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 p-6 rounded-xl mb-8 animate-in fade-in-50">
+            <div className="flex items-center gap-3">
+              <Shield className="h-6 w-6 text-amber-500" />
+              <div>
+                <p className="font-semibold">Enhanced features available with account</p>
+                <p className="text-sm mt-1">
+                  Please <Link to="/auth" className="font-bold underline hover:text-amber-700 transition-colors">log in</Link> to save and manage your generated APIs with Level 4 Military-Grade features.
+                </p>
+              </div>
+            </div>
+          </div>
         )}
 
-        {isLoading && (
-           <div className="flex flex-col items-center gap-4">
-            <LoaderCircle className="h-12 w-12 animate-spin text-primary" />
-            <p className="text-muted-foreground">Crafting your API with Level 3 AI intelligence... this might take a moment.</p>
-            <div className="text-sm text-muted-foreground max-w-md">
-              <p className="flex items-center gap-2"><Brain className="h-4 w-4" /> AI is analyzing content patterns and entities</p>
-              <p className="flex items-center gap-2"><Zap className="h-4 w-4" /> Setting up real-time synchronization</p>
-              <p className="flex items-center gap-2"><Database className="h-4 w-4" /> Enhancing data with quality assessment</p>
-              <p className="flex items-center gap-2"><Search className="h-4 w-4" /> Generating smart query interface</p>
+        {/* Advanced Logger */}
+        {showAdvancedLogger && (
+          <div className="w-full max-w-4xl mb-8 animate-in fade-in-50 duration-500">
+            <AdvancedLogger 
+              isActive={isLoading} 
+              url={url} 
+              onComplete={() => {
+                console.log('API generation logging completed');
+              }} 
+            />
+          </div>
+        )}
+
+        {isLoading && !showAdvancedLogger && (
+           <div className="flex flex-col items-center gap-6 p-8 bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl border border-blue-200">
+            <LoaderCircle className="h-16 w-16 animate-spin text-primary" />
+            <div className="text-center">
+              <h3 className="text-xl font-semibold mb-2">Crafting your API with Level 4 Military-Grade AI</h3>
+              <p className="text-muted-foreground mb-4">This might take a moment as we apply advanced intelligence...</p>
+            </div>
+            <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground max-w-md">
+              <p className="flex items-center gap-2"><Brain className="h-4 w-4 text-purple-500" /> AI analyzing content patterns</p>
+              <p className="flex items-center gap-2"><Zap className="h-4 w-4 text-blue-500" /> Real-time synchronization</p>
+              <p className="flex items-center gap-2"><Database className="h-4 w-4 text-green-500" /> Quality enhancement</p>
+              <p className="flex items-center gap-2"><Search className="h-4 w-4 text-orange-500" /> Smart query generation</p>
             </div>
            </div>
         )}
@@ -361,9 +401,18 @@ const Index = () => {
         )}
       </main>
       
-      <footer className="py-4 border-t">
-        <div className="container mx-auto text-center text-sm text-muted-foreground">
-          Built with love by Lovable.
+      <footer className="py-6 border-t bg-gradient-to-r from-background to-muted/20">
+        <div className="container mx-auto text-center">
+          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+            <span>Built with</span>
+            <span className="text-red-500">♥</span>
+            <span>by Lovable</span>
+            <span className="mx-2">•</span>
+            <span className="flex items-center gap-1">
+              <Crown className="h-3 w-3 text-amber-500" />
+              Level 4 Military-Grade AI
+            </span>
+          </div>
         </div>
       </footer>
     </div>
