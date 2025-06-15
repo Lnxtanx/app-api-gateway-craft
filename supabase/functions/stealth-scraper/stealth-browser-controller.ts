@@ -1,9 +1,11 @@
-
 import puppeteer, { Browser, Page } from 'https://deno.land/x/puppeteer@16.2.0/mod.ts';
 import { StealthProfile } from './types.ts';
 import { BrowserFingerprintManager } from './browser-fingerprint-manager.ts';
 import { HumanBehaviorSimulator } from './human-behavior-simulator.ts';
 import { AdvancedScrapingEngine } from './advanced-scraping-engine.ts';
+import { ProxyManager } from './proxy-manager.ts';
+import { RateLimiter } from './rate-limiter.ts';
+import { HeaderManager } from './header-manager.ts';
 
 /**
  * Enhanced Stealth Browser Controller with Advanced Logical Scraping
@@ -14,64 +16,77 @@ export class StealthBrowserController {
   private profile: StealthProfile;
   private humanBehavior: HumanBehaviorSimulator | null = null;
   private scrapingEngine: AdvancedScrapingEngine | null = null;
+  private proxyManager: ProxyManager;
+  private rateLimiter: RateLimiter;
+  private currentUrl: string = '';
+  private previousUrl: string = '';
 
   constructor(profile?: StealthProfile) {
     this.profile = profile || BrowserFingerprintManager.getRandomProfile();
+    this.proxyManager = new ProxyManager();
+    this.rateLimiter = new RateLimiter();
   }
 
   async initialize(): Promise<void> {
-    console.log(`🚀 Initializing advanced stealth browser with profile: ${this.profile.name}`);
+    console.log(`🚀 Initializing Level 1 stealth browser with profile: ${this.profile.name}`);
     
+    // Get proxy for this session
+    const proxy = this.proxyManager.getNextProxy();
+    const launchArgs = [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-web-security',
+      '--disable-blink-features=AutomationControlled',
+      '--disable-automation',
+      '--disable-default-apps',
+      '--disable-extensions',
+      '--disable-plugins',
+      '--disable-ipc-flooding-protection',
+      '--disable-renderer-backgrounding',
+      '--disable-backgrounding-occluded-windows',
+      '--disable-client-side-phishing-detection',
+      '--disable-component-extensions-with-background-pages',
+      '--disable-features=TranslateUI',
+      '--disable-hang-monitor',
+      '--disable-popup-blocking',
+      '--disable-prompt-on-repost',
+      '--disable-sync',
+      '--force-color-profile=srgb',
+      '--metrics-recording-only',
+      '--no-crash-upload',
+      '--no-default-browser-check',
+      '--no-first-run',
+      '--no-pings',
+      '--no-zygote',
+      '--password-store=basic',
+      '--use-mock-keychain',
+      '--user-agent=' + this.profile.userAgent,
+      `--window-size=${this.profile.viewport.width},${this.profile.viewport.height}`,
+      '--lang=' + this.profile.locale
+    ];
+
+    // Add proxy if available
+    if (proxy) {
+      launchArgs.push(this.proxyManager.getProxyString(proxy));
+      console.log(`🔄 Using proxy: ${proxy.host}:${proxy.port}`);
+    }
+
     this.browser = await puppeteer.launch({
       headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-web-security',
-        '--disable-blink-features=AutomationControlled',
-        '--disable-automation',
-        '--disable-default-apps',
-        '--disable-extensions',
-        '--disable-plugins',
-        '--disable-ipc-flooding-protection',
-        '--disable-renderer-backgrounding',
-        '--disable-backgrounding-occluded-windows',
-        '--disable-client-side-phishing-detection',
-        '--disable-component-extensions-with-background-pages',
-        '--disable-default-apps',
-        '--disable-dev-shm-usage',
-        '--disable-extensions',
-        '--disable-features=TranslateUI',
-        '--disable-hang-monitor',
-        '--disable-ipc-flooding-protection',
-        '--disable-popup-blocking',
-        '--disable-prompt-on-repost',
-        '--disable-renderer-backgrounding',
-        '--disable-sync',
-        '--force-color-profile=srgb',
-        '--metrics-recording-only',
-        '--no-crash-upload',
-        '--no-default-browser-check',
-        '--no-first-run',
-        '--no-pings',
-        '--no-zygote',
-        '--password-store=basic',
-        '--use-mock-keychain',
-        '--user-agent=' + this.profile.userAgent,
-        `--window-size=${this.profile.viewport.width},${this.profile.viewport.height}`,
-        '--lang=' + this.profile.locale
-      ],
+      args: launchArgs,
     });
 
     this.page = await this.browser.newPage();
-    await this.applyAdvancedStealthTechniques();
+    await this.applyLevel1StealthTechniques();
     this.humanBehavior = new HumanBehaviorSimulator(this.page);
     this.scrapingEngine = new AdvancedScrapingEngine(this.page, this.profile);
   }
 
-  private async applyAdvancedStealthTechniques(): Promise<void> {
+  private async applyLevel1StealthTechniques(): Promise<void> {
     if (!this.page) return;
+
+    console.log('🛡️ Applying Level 1 stealth techniques...');
 
     // Set viewport
     await this.page.setViewport({
@@ -86,16 +101,11 @@ export class StealthBrowserController {
     // Set user agent
     await this.page.setUserAgent(this.profile.userAgent);
 
-    // Set headers
-    await this.page.setExtraHTTPHeaders({
-      'Accept-Language': this.profile.locale,
-      'Accept-Encoding': 'gzip, deflate, br',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-      'Upgrade-Insecure-Requests': '1',
-      'Cache-Control': 'max-age=0'
-    });
+    // Generate realistic headers
+    const headers = HeaderManager.generateRealisticHeaders(this.profile.userAgent);
+    await this.page.setExtraHTTPHeaders(headers);
 
-    // Advanced stealth techniques
+    // Apply advanced stealth techniques
     await this.page.evaluateOnNewDocument(() => {
       // Override webdriver detection
       Object.defineProperty(navigator, 'webdriver', {
@@ -120,9 +130,13 @@ export class StealthBrowserController {
           originalQuery(parameters)
       );
 
-      // Override plugins
+      // Override plugins to look more realistic
       Object.defineProperty(navigator, 'plugins', {
-        get: () => [1, 2, 3, 4, 5],
+        get: () => [
+          { name: 'Chrome PDF Plugin', filename: 'internal-pdf-viewer' },
+          { name: 'Chrome PDF Viewer', filename: 'mhjfbmdgcfjbbpaeojofohoefgiehjai' },
+          { name: 'Native Client', filename: 'ppapi_cpp' }
+        ],
       });
 
       // Override languages
@@ -143,7 +157,7 @@ export class StealthBrowserController {
         get: () => 8,
       });
 
-      // Override screen properties
+      // Override screen properties to match viewport
       Object.defineProperty(screen, 'availHeight', {
         get: () => window.screen.height,
       });
@@ -151,21 +165,42 @@ export class StealthBrowserController {
       Object.defineProperty(screen, 'availWidth', {
         get: () => window.screen.width,
       });
+
+      // Add realistic timing behavior
+      const originalSetTimeout = window.setTimeout;
+      window.setTimeout = function(callback, delay) {
+        const jitter = Math.random() * 10 - 5; // Add small random delay
+        return originalSetTimeout(callback, delay + jitter);
+      };
     });
 
-    console.log('🛡️ Advanced stealth techniques applied successfully');
+    console.log('✅ Level 1 stealth techniques applied successfully');
   }
 
   async navigateWithStealth(url: string): Promise<void> {
     if (!this.page || !this.humanBehavior) throw new Error('Browser not initialized');
 
-    console.log(`🌐 Navigating to ${url} with enhanced stealth mode...`);
+    console.log(`🌐 Level 1 stealth navigation to ${url}...`);
 
-    // Random delay before navigation
-    await new Promise(resolve => setTimeout(resolve, Math.random() * 3000 + 1000));
+    // Check robots.txt compliance
+    const robotsAllowed = await this.rateLimiter.respectRobotsTxt(url);
+    if (!robotsAllowed) {
+      console.log('🚫 Navigation blocked by robots.txt');
+      throw new Error('Navigation blocked by robots.txt compliance');
+    }
 
-    // Navigate with extended timeout and multiple wait conditions
-    const timeout = Math.random() * 15000 + 30000;
+    // Apply rate limiting
+    await this.rateLimiter.waitForRateLimit(url);
+
+    // Update navigation headers
+    const navigationHeaders = HeaderManager.addNavigationHeaders(url, this.previousUrl);
+    await this.page.setExtraHTTPHeaders({
+      ...HeaderManager.generateRealisticHeaders(this.profile.userAgent, this.previousUrl),
+      ...navigationHeaders
+    });
+
+    // Navigate with multiple fallback strategies
+    const timeout = Math.random() * 5000 + 25000; // 25-30s random timeout
     
     try {
       await this.page.goto(url, { 
@@ -173,18 +208,33 @@ export class StealthBrowserController {
         timeout: timeout
       });
     } catch (error) {
-      console.log('⚠️ Initial navigation timeout, trying with networkidle2...');
-      await this.page.goto(url, { 
-        waitUntil: ['networkidle2', 'domcontentloaded'],
-        timeout: 20000
-      });
+      console.log('⚠️ Initial navigation timeout, trying networkidle2...');
+      try {
+        await this.page.goto(url, { 
+          waitUntil: ['networkidle2', 'domcontentloaded'],
+          timeout: 20000
+        });
+      } catch (secondError) {
+        console.log('⚠️ Second navigation attempt failed, trying basic load...');
+        await this.page.goto(url, { 
+          waitUntil: 'load',
+          timeout: 15000
+        });
+      }
     }
 
-    // Simulate human behavior
+    // Update URL tracking
+    this.previousUrl = this.currentUrl;
+    this.currentUrl = url;
+
+    // Simulate realistic human behavior
     await this.humanBehavior.simulateRandomInteractions();
     
-    // Additional wait for dynamic content
-    await new Promise(resolve => setTimeout(resolve, Math.random() * 3000 + 2000));
+    // Wait for dynamic content with random delay
+    const contentWait = Math.random() * 2000 + 2000; // 2-4s wait
+    await new Promise(resolve => setTimeout(resolve, contentWait));
+
+    console.log('✅ Level 1 stealth navigation completed');
   }
 
   async getPageContent(): Promise<string> {
@@ -198,16 +248,14 @@ export class StealthBrowserController {
     console.log('🧠 Starting advanced logical scraping flow...');
     
     try {
-      // Use the advanced scraping engine
       const advancedResult = await this.scrapingEngine.executeLogicalFlow(this.page.url());
-      
-      // Merge with basic extraction for completeness
       const basicResult = await this.performBasicExtraction();
       
       return {
         ...basicResult,
         advanced: advancedResult,
-        extraction_method: 'advanced_logical_flow',
+        extraction_method: 'level_1_stealth_scraping',
+        stealth_level: 1,
         confidence: advancedResult.enhancement?.confidence || 0.7
       };
       
@@ -223,20 +271,17 @@ export class StealthBrowserController {
     return await this.page.evaluate(() => {
       const data: any = {};
       
-      // Basic page information
       data.title = document.title || 'No title found';
       
       const metaDescription = document.querySelector('meta[name="description"]');
       data.description = metaDescription ? metaDescription.getAttribute('content') || '' : '';
       
-      // Extract headings with hierarchy
       data.headings = Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, h6')).map(h => ({
         tag: h.tagName.toLowerCase(),
         text: h.textContent?.trim() || '',
         level: parseInt(h.tagName.substring(1))
       })).filter(h => h.text.length > 0).slice(0, 20);
       
-      // Extract links with more metadata
       data.links = Array.from(document.querySelectorAll('a[href]')).map(a => {
         const href = a.getAttribute('href') || '';
         return {
@@ -251,7 +296,6 @@ export class StealthBrowserController {
         };
       }).filter(link => link.text.length > 0 || link.href.length > 0).slice(0, 50);
       
-      // Extract images with more details
       data.images = Array.from(document.querySelectorAll('img')).map(img => ({
         src: img.getAttribute('src') || '',
         alt: img.getAttribute('alt') || '',
@@ -262,19 +306,17 @@ export class StealthBrowserController {
         srcset: img.getAttribute('srcset') || ''
       })).filter(img => img.src.length > 0).slice(0, 20);
 
-      // Enhanced extraction for structured content
       data.structuredContent = {
-        quotes: this.extractQuotes(),
-        articles: this.extractArticles(),
-        products: this.extractProducts(),
-        events: this.extractEvents(),
-        reviews: this.extractReviews(),
-        breadcrumbs: this.extractBreadcrumbs(),
-        socialMedia: this.extractSocialMediaLinks(),
-        contactInfo: this.extractContactInfo()
+        quotes: this.extractQuotes?.() || [],
+        articles: this.extractArticles?.() || [],
+        products: this.extractProducts?.() || [],
+        events: this.extractEvents?.() || [],
+        reviews: this.extractReviews?.() || [],
+        breadcrumbs: this.extractBreadcrumbs?.() || [],
+        socialMedia: this.extractSocialMediaLinks?.() || [],
+        contactInfo: this.extractContactInfo?.() || []
       };
 
-      // Extract forms and inputs
       data.forms = Array.from(document.querySelectorAll('form')).map(form => ({
         action: form.getAttribute('action') || '',
         method: form.getAttribute('method') || 'GET',
@@ -287,7 +329,6 @@ export class StealthBrowserController {
         }))
       }));
 
-      // Extract metadata
       data.metadata = {
         canonical: document.querySelector('link[rel="canonical"]')?.getAttribute('href') || '',
         robots: document.querySelector('meta[name="robots"]')?.getAttribute('content') || '',
