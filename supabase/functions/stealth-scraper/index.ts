@@ -304,6 +304,38 @@ class StealthBrowserController {
         src: img.getAttribute('src'),
         alt: img.getAttribute('alt')
       }));
+
+      // Enhanced extraction for quotes.toscrape.com specifically
+      const quotes = Array.from(document.querySelectorAll('.quote')).map(quote => ({
+        text: quote.querySelector('.text')?.textContent?.trim() || '',
+        author: quote.querySelector('.author')?.textContent?.trim() || '',
+        tags: Array.from(quote.querySelectorAll('.tag')).map(tag => tag.textContent?.trim())
+      }));
+
+      if (quotes.length > 0) {
+        data.quotes = quotes;
+      }
+
+      // Generic structured data extraction
+      const articles = Array.from(document.querySelectorAll('article, .article, .post, .item')).slice(0, 20).map(article => ({
+        title: article.querySelector('h1, h2, h3, .title')?.textContent?.trim() || '',
+        content: article.querySelector('p, .content, .description')?.textContent?.trim() || '',
+        link: article.querySelector('a')?.getAttribute('href') || ''
+      }));
+
+      if (articles.length > 0) {
+        data.articles = articles.filter(article => article.title || article.content);
+      }
+
+      // Extract any list items
+      const listItems = Array.from(document.querySelectorAll('li')).slice(0, 30).map(li => ({
+        text: li.textContent?.trim() || '',
+        link: li.querySelector('a')?.getAttribute('href') || ''
+      }));
+
+      if (listItems.length > 0) {
+        data.listItems = listItems.filter(item => item.text && item.text.length > 10);
+      }
       
       return data;
     });
@@ -433,6 +465,7 @@ serve(async (req) => {
           });
         }
 
+        console.log(`Starting direct scrape for: ${targetUrl}`);
         const profile = BrowserFingerprintManager.getRandomProfile();
         const stealthBrowser = new StealthBrowserController(profile);
         
@@ -444,15 +477,24 @@ serve(async (req) => {
           const structuredData = await stealthBrowser.extractStructuredData();
           
           await stealthBrowser.close();
+
+          console.log(`Scraping completed for ${targetUrl}. Extracted data:`, JSON.stringify(structuredData, null, 2));
           
           return new Response(JSON.stringify({
             url: targetUrl,
-            html: html.substring(0, 5000) + '...',
+            html: html.substring(0, 5000) + (html.length > 5000 ? '...' : ''),
             structured_data: structuredData,
             metadata: {
               profile_used: profile.name,
               captcha_encountered: false,
-              content_length: html.length
+              content_length: html.length,
+              extraction_summary: {
+                title: structuredData.title || 'No title found',
+                quotes_found: structuredData.quotes?.length || 0,
+                articles_found: structuredData.articles?.length || 0,
+                links_found: structuredData.links?.length || 0,
+                images_found: structuredData.images?.length || 0
+              }
             }
           }), {
             status: 200,
@@ -464,7 +506,8 @@ serve(async (req) => {
           console.error('Direct scraping failed:', error);
           return new Response(JSON.stringify({ 
             error: 'Direct scraping failed',
-            details: error.message
+            details: error.message,
+            url: targetUrl
           }), {
             status: 500,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
