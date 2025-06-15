@@ -86,7 +86,7 @@ serve(async (req) => {
         });
       }
 
-      // Return status ONLY if body is absent or blank
+      // If there is no body, return system status
       if (!bodyText || bodyText.trim() === '') {
         const operationalStatus = await getOperationalIntelligence();
         return new Response(JSON.stringify(operationalStatus), {
@@ -94,7 +94,7 @@ serve(async (req) => {
         });
       }
 
-      // At this point, bodyText is not empty: parse and validate
+      // Parse and validate input for action
       let requestData: MilitaryGradeScrapeRequest;
       try {
         requestData = JSON.parse(bodyText);
@@ -110,11 +110,9 @@ serve(async (req) => {
         });
       }
 
-      // Validate action and url for "scrape" requests
+      // Main adjustment: Only return status for GET or blank POST, never when action=scrape
       const { action, url, extraction_profile, anti_detection_mode } = requestData;
-
       if (action === 'scrape') {
-        // If no valid url -> error, otherwise process as scrape
         if (!url || !isValidOperationalTarget(url)) {
           return new Response(JSON.stringify({
             error: 'Invalid operational target URL',
@@ -126,7 +124,8 @@ serve(async (req) => {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           });
         }
-        // NEW: Step 1: Try a fast HTML scrape before going to headless browser
+
+        // Try fast static scrape
         try {
           const fastResult = await fastStaticHtmlScrape(url, extraction_profile || 'comprehensive', operationId);
           if (fastResult && fastResult.success && fastResult.completeness > 0.9) {
@@ -173,7 +172,7 @@ serve(async (req) => {
           console.warn(`[${operationId}] Fast static HTML scrape failed, falling back to heavy engine:`, err);
         }
 
-        // Step 2: Otherwise, do full military-grade scrape:
+        // If fast scrape does not yield, fallback to full engine.
         try {
           // Do military-grade scrape:
           console.log(`⚔️ [${operationId}] Executing Military-Grade Operation`);
@@ -266,6 +265,17 @@ serve(async (req) => {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           });
         }
+
+        // If both fail, return explicit error, NOT status object.
+        return new Response(JSON.stringify({
+          error: "Military-grade operation could not extract data from the target. Both static and headless approaches failed.",
+          operation_id: operationId,
+          target_url: url,
+          timestamp: new Date().toISOString()
+        }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
       }
 
       // Handle enqueue action for batch operations
