@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 import { BrowserFingerprintManager } from './browser-fingerprint-manager.ts';
@@ -14,6 +13,8 @@ serve(async (req) => {
 
   try {
     console.log(`🌐 ${req.method} request received`);
+    console.log(`📋 Request URL: ${req.url}`);
+    console.log(`📋 Request headers:`, Object.fromEntries(req.headers.entries()));
 
     // Handle GET requests - always return system stats
     if (req.method === 'GET') {
@@ -36,13 +37,14 @@ serve(async (req) => {
       if (contentType?.includes('application/json')) {
         try {
           const bodyText = await req.text();
-          console.log('📥 Request body text:', bodyText);
+          console.log('📥 Raw request body length:', bodyText.length);
+          console.log('📥 Raw request body (first 500 chars):', bodyText.substring(0, 500));
           
           if (bodyText && bodyText.trim()) {
             requestData = JSON.parse(bodyText);
-            console.log('✅ Parsed request data:', JSON.stringify(requestData, null, 2));
+            console.log('✅ Successfully parsed JSON request data:', JSON.stringify(requestData, null, 2));
           } else {
-            console.log('⚠️ Empty request body - returning stats');
+            console.log('⚠️ Empty request body detected - this will return stats');
             const stats = await getSystemStats();
             return new Response(JSON.stringify(stats), {
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -67,22 +69,51 @@ serve(async (req) => {
         });
       }
 
-      // Extract action and parameters
+      // Extract and validate action and parameters
       const { action, url, priority, stealth_level, scraping_intent } = requestData;
       
-      console.log('🔍 Action analysis:', { 
+      console.log('🔍 Detailed request analysis:', { 
         action, 
         url, 
         stealth_level,
         priority,
         scraping_intent,
         hasAction: !!action,
-        actionType: typeof action
+        actionType: typeof action,
+        actionValue: action,
+        urlProvided: !!url,
+        urlValue: url,
+        requestDataKeys: Object.keys(requestData),
+        fullRequestData: requestData
       });
+
+      // CRITICAL CHECK: Ensure action is exactly 'scrape'
+      if (action !== 'scrape' && action !== 'enqueue') {
+        console.log(`❌ Action is not 'scrape' or 'enqueue'. Received: "${action}" (type: ${typeof action})`);
+        if (!action) {
+          console.log('📊 No action provided - returning system stats');
+          const stats = await getSystemStats();
+          return new Response(JSON.stringify(stats), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        } else {
+          console.error(`❌ Unknown action received: "${action}"`);
+          return new Response(JSON.stringify({
+            error: `Unknown action: ${action}`,
+            supported_actions: ['scrape', 'enqueue'],
+            received_action: action,
+            action_type: typeof action,
+            timestamp: new Date().toISOString()
+          }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+      }
 
       // PRIORITY 1: Handle scrape action
       if (action === 'scrape') {
-        console.log(`🚀 SCRAPE ACTION DETECTED - URL: ${url}`);
+        console.log(`🚀 SCRAPE ACTION CONFIRMED - Processing URL: ${url}`);
         
         if (!url) {
           console.error('❌ No URL provided for scrape action');
@@ -97,12 +128,22 @@ serve(async (req) => {
         
         // Determine stealth level
         const level = stealth_level === 4 ? 4 : stealth_level === 3 ? 3 : stealth_level === 2 ? 2 : 1;
-        console.log(`🛡️ Using stealth level: ${level}`);
+        console.log(`🛡️ Using stealth level: ${level} for URL: ${url}`);
         
         try {
-          console.log('🎯 Calling performDirectScrape...');
+          console.log('🎯 About to call performDirectScrape...');
           const result = await performDirectScrape(url, level, scraping_intent);
-          console.log('✅ Scrape completed successfully');
+          console.log('✅ performDirectScrape completed, result type:', typeof result);
+          console.log('✅ performDirectScrape result keys:', Object.keys(result || {}));
+          
+          // Validate result structure
+          if (!result || typeof result !== 'object') {
+            throw new Error('Invalid result from performDirectScrape - not an object');
+          }
+
+          if (!result.url && !result.structured_data) {
+            throw new Error('Invalid result from performDirectScrape - missing required fields (url, structured_data)');
+          }
           
           // Normalize response format for frontend
           const normalizedResponse = {
@@ -117,17 +158,19 @@ serve(async (req) => {
             url: result.url
           };
           
-          console.log('📤 Returning normalized scrape response');
+          console.log('📤 Returning normalized scrape response with keys:', Object.keys(normalizedResponse));
           return new Response(JSON.stringify(normalizedResponse), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
         } catch (scrapeError) {
           console.error(`❌ Scrape execution failed:`, scrapeError);
+          console.error(`❌ Scrape error stack:`, scrapeError.stack);
           return new Response(JSON.stringify({
             error: `Scraping failed: ${scrapeError.message}`,
             url: url,
             stealth_level: level,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            error_details: scrapeError.stack
           }), {
             status: 500,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -149,26 +192,6 @@ serve(async (req) => {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      
-      // Handle unknown actions
-      if (action && action !== 'scrape' && action !== 'enqueue') {
-        console.error(`❌ Unknown action received: ${action}`);
-        return new Response(JSON.stringify({
-          error: `Unknown action: ${action}`,
-          supported_actions: ['scrape', 'enqueue'],
-          timestamp: new Date().toISOString()
-        }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      
-      // If no action is provided in POST, return system stats
-      console.log('📊 No action provided in POST - returning system stats');
-      const stats = await getSystemStats();
-      return new Response(JSON.stringify(stats), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
     }
 
     // Handle other HTTP methods
@@ -183,6 +206,7 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('❌ Stealth scraper error:', error);
+    console.error('❌ Error stack:', error.stack);
     return new Response(JSON.stringify({
       error: error.message,
       timestamp: new Date().toISOString(),
