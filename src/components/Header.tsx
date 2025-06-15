@@ -1,127 +1,66 @@
-
-import { Link, useLocation } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { Button } from "@/components/ui/button";
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { LogOut, User, Zap, Shield, TestTube, BarChart } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
 
-export default function Header() {
-  const { user } = useAuth();
-  const location = useLocation();
-  const { toast } = useToast();
-
-  const handleSignOut = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      toast({
-        title: "Error signing out",
-        description: error.message,
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "Signed out successfully",
-        description: "You have been logged out",
-      });
-    }
-  };
-
-  const isActive = (path: string) => {
-    return location.pathname === path;
-  };
+const Header = () => {
+  const { user, signOut } = useAuth();
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 items-center">
-        <div className="mr-4 hidden md:flex">
-          <Link to="/" className="mr-6 flex items-center space-x-2">
-            <Zap className="h-6 w-6" />
-            <span className="hidden font-bold sm:inline-block">
-              ScrapeMaster Pro
-            </span>
+    <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 sticky top-0 z-50">
+      <div className="container mx-auto px-4 h-14 flex items-center justify-between">
+        <div className="flex items-center gap-6">
+          <Link to="/" className="flex items-center gap-2 font-bold text-xl">
+            🌐 WebAPI Generator
           </Link>
-          <nav className="flex items-center space-x-6 text-sm font-medium">
-            <Link
-              to="/"
-              className={`transition-colors hover:text-foreground/80 ${
-                isActive('/') ? 'text-foreground' : 'text-foreground/60'
-              }`}
-            >
-              Home
-            </Link>
-            {user && (
-              <>
-                <Link
-                  to="/dashboard"
-                  className={`transition-colors hover:text-foreground/80 ${
-                    isActive('/dashboard') ? 'text-foreground' : 'text-foreground/60'
-                  }`}
-                >
-                  Dashboard
-                </Link>
-                <Link
-                  to="/api-tester"
-                  className={`transition-colors hover:text-foreground/80 flex items-center gap-1 ${
-                    isActive('/api-tester') ? 'text-foreground' : 'text-foreground/60'
-                  }`}
-                >
-                  <TestTube className="h-4 w-4" />
-                  API Tester
-                </Link>
-                <Link
-                  to="/stealth-scraping"
-                  className={`transition-colors hover:text-foreground/80 flex items-center gap-1 ${
-                    isActive('/stealth-scraping') ? 'text-foreground' : 'text-foreground/60'
-                  }`}
-                >
-                  <Shield className="h-4 w-4" />
-                  Stealth Engine
-                </Link>
-                <Link
-                  to="/business-intelligence"
-                  className={`transition-colors hover:text-foreground/80 flex items-center gap-1 ${
-                    isActive('/business-intelligence') ? 'text-foreground' : 'text-foreground/60'
-                  }`}
-                >
-                  <BarChart className="h-4 w-4" />
-                  Business Intelligence
-                </Link>
-              </>
-            )}
-          </nav>
-        </div>
-
-        {/* Mobile navigation */}
-        <div className="flex md:hidden">
-          <Link to="/" className="flex items-center space-x-2">
-            <Zap className="h-6 w-6" />
-            <span className="font-bold">ScrapeMaster</span>
-          </Link>
-        </div>
-
-        <div className="flex flex-1 items-center justify-end space-x-2">
-          {user ? (
-            <>
-              <div className="flex items-center space-x-2">
-                <User className="h-4 w-4" />
-                <span className="text-sm text-muted-foreground hidden sm:inline">
-                  {user.email}
-                </span>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSignOut}
-                className="flex items-center space-x-1"
+          
+          {user && (
+            <nav className="flex items-center gap-4">
+              <Link 
+                to="/dashboard" 
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >
-                <LogOut className="h-4 w-4" />
-                <span className="hidden sm:inline">Sign Out</span>
+                Dashboard
+              </Link>
+              <Link 
+                to="/stealth-scraping" 
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+              >
+                🛡️ Stealth Scraping
+              </Link>
+              <Link 
+                to="/api-tester" 
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                API Tester
+              </Link>
+              <Link 
+                to="/business-intelligence" 
+                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Analytics
+              </Link>
+            </nav>
+          )}
+        </div>
+
+        <div className="flex items-center gap-4">
+          {user ? (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">
+                {user.email}
+              </span>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => signOut()}
+              >
+                Sign Out
               </Button>
-            </>
+            </div>
           ) : (
             <Link to="/auth">
-              <Button variant="default" size="sm">
+              <Button variant="outline" size="sm">
                 Sign In
               </Button>
             </Link>
@@ -130,4 +69,6 @@ export default function Header() {
       </div>
     </header>
   );
-}
+};
+
+export default Header;

@@ -1,361 +1,290 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AlertCircle, Shield, Zap, Globe, Activity, Eye, Brain, Users } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 
-interface StealthStats {
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from '@/integrations/supabase/client';
+import { 
+  Shield, 
+  Brain, 
+  Zap, 
+  Eye, 
+  Globe, 
+  Clock, 
+  CheckCircle, 
+  AlertTriangle,
+  LoaderCircle,
+  Play,
+  Plus,
+  BarChart3
+} from 'lucide-react';
+import CodeBlock from './CodeBlock';
+
+interface StealthJob {
+  job_id: string;
+  url: string;
+  priority: string;
+  status: string;
+  profile_used?: string;
+  captcha_encountered?: boolean;
+  created_at: string;
+  structured_data?: any;
+}
+
+interface SystemStats {
   total: number;
   pending: number;
   processing: number;
   completed: number;
   failed: number;
   available_profiles: number;
-  proxy_count: number;
   captcha_solver_configured: boolean;
   stealth_features: string[];
 }
 
-interface ScrapeJob {
-  job_id: string;
-  url: string;
-  priority: string;
-  metadata?: {
-    profile_used: string;
-    captcha_encountered: boolean;
-    content_length: number;
-  };
-}
-
-export default function StealthScrapingInterface() {
+const StealthScrapingInterface: React.FC = () => {
   const [url, setUrl] = useState('');
-  const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('medium');
+  const [priority, setPriority] = useState('medium');
   const [isLoading, setIsLoading] = useState(false);
-  const [stats, setStats] = useState<StealthStats | null>(null);
-  const [recentJobs, setRecentJobs] = useState<ScrapeJob[]>([]);
+  const [jobs, setJobs] = useState<StealthJob[]>([]);
+  const [systemStats, setSystemStats] = useState<SystemStats | null>(null);
+  const [selectedJob, setSelectedJob] = useState<StealthJob | null>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    loadStats();
-    const interval = setInterval(loadStats, 5000); // Update every 5 seconds
-    return () => clearInterval(interval);
-  }, []);
-
-  const loadStats = async () => {
+  const fetchSystemStats = async () => {
     try {
       const { data, error } = await supabase.functions.invoke('stealth-scraper', {
-        method: 'GET',
-        body: new URLSearchParams({ action: 'stats' })
+        body: {},
+        headers: { 'Content-Type': 'application/json' }
       });
 
       if (error) throw error;
-      setStats(data);
+      setSystemStats(data);
     } catch (error) {
-      console.error('Failed to load stats:', error);
+      console.error('Failed to fetch system stats:', error);
     }
   };
 
-  const handleDirectScrape = async () => {
-    if (!url.trim()) {
-      toast({
-        title: "URL Required",
-        description: "Please enter a URL to scrape",
-        variant: "destructive"
-      });
-      return;
-    }
+  const enqueueJob = async () => {
+    if (!url) return;
 
     setIsLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('stealth-scraper', {
-        method: 'GET',
-        body: new URLSearchParams({ 
-          action: 'scrape',
-          url: url.trim(),
-          queue: 'false'
-        })
+        body: { action: 'enqueue', url, priority },
+        headers: { 'Content-Type': 'application/json' }
       });
 
       if (error) throw error;
 
-      const newJob: ScrapeJob = {
-        job_id: 'direct-' + Date.now(),
-        url: url.trim(),
-        priority: 'direct',
-        metadata: data.metadata
-      };
-
-      setRecentJobs(prev => [newJob, ...prev.slice(0, 4)]);
-      
-      toast({
-        title: "Stealth Scrape Complete",
-        description: `Successfully scraped ${url} using ${data.metadata.profile_used} profile`,
-      });
-
-      await loadStats();
-    } catch (error) {
-      console.error('Direct scraping failed:', error);
-      toast({
-        title: "Scraping Failed",
-        description: error.message || "Failed to scrape the URL",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleEnqueueJob = async () => {
-    if (!url.trim()) {
-      toast({
-        title: "URL Required",
-        description: "Please enter a URL to enqueue",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('stealth-scraper', {
-        method: 'GET',
-        body: new URLSearchParams({ 
-          action: 'enqueue',
-          url: url.trim(),
-          priority: priority
-        })
-      });
-
-      if (error) throw error;
-
-      const newJob: ScrapeJob = {
+      const newJob: StealthJob = {
         job_id: data.job_id,
         url: data.url,
-        priority: data.priority
+        priority: data.priority,
+        status: 'pending',
+        created_at: new Date().toISOString()
       };
 
-      setRecentJobs(prev => [newJob, ...prev.slice(0, 4)]);
+      setJobs(prev => [newJob, ...prev]);
+      setUrl('');
       
       toast({
         title: "Job Enqueued",
-        description: `Job ${data.job_id} added to queue with ${priority} priority`,
+        description: `Stealth scraping job queued for ${data.url}`,
       });
 
-      await loadStats();
-      setUrl('');
-    } catch (error) {
-      console.error('Job enqueue failed:', error);
+      // Refresh stats
+      await fetchSystemStats();
+    } catch (error: any) {
       toast({
-        title: "Enqueue Failed",
-        description: error.message || "Failed to enqueue the job",
-        variant: "destructive"
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleProcessQueue = async () => {
+  const runDirectScrape = async () => {
+    if (!url) return;
+
     setIsLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('stealth-scraper', {
-        method: 'GET',
-        body: new URLSearchParams({ 
-          action: 'scrape',
-          queue: 'true'
-        })
+        body: { action: 'scrape', url },
+        headers: { 'Content-Type': 'application/json' }
       });
 
       if (error) throw error;
 
-      if (data.job_id) {
-        const processedJob: ScrapeJob = {
-          job_id: data.job_id,
-          url: data.url,
-          priority: 'processed',
-          metadata: data.metadata
-        };
+      const newJob: StealthJob = {
+        job_id: `direct-${Date.now()}`,
+        url: data.url,
+        priority: 'high',
+        status: 'completed',
+        profile_used: data.metadata?.profile_used,
+        captcha_encountered: data.metadata?.captcha_encountered,
+        created_at: new Date().toISOString(),
+        structured_data: data.structured_data
+      };
 
-        setRecentJobs(prev => [processedJob, ...prev.slice(0, 4)]);
-        
-        toast({
-          title: "Queue Job Processed",
-          description: `Job ${data.job_id} completed successfully`,
-        });
-      } else {
-        toast({
-          title: "Queue Empty",
-          description: "No jobs available in the queue",
-        });
-      }
-
-      await loadStats();
-    } catch (error) {
-      console.error('Queue processing failed:', error);
+      setJobs(prev => [newJob, ...prev]);
+      setSelectedJob(newJob);
+      setUrl('');
+      
       toast({
-        title: "Processing Failed",
-        description: error.message || "Failed to process queue",
-        variant: "destructive"
+        title: "Direct Scrape Complete",
+        description: `Successfully scraped ${data.url} using ${data.metadata?.profile_used}`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Scraping Failed",
+        description: error.message,
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  React.useEffect(() => {
+    fetchSystemStats();
+  }, []);
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'default';
+      case 'failed': return 'destructive';
+      case 'processing': return 'secondary';
+      default: return 'outline';
     }
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'high': return 'bg-red-500';
-      case 'medium': return 'bg-yellow-500';
-      case 'low': return 'bg-green-500';
-      case 'direct': return 'bg-blue-500';
-      case 'processed': return 'bg-purple-500';
-      default: return 'bg-gray-500';
+      case 'high': return 'destructive';
+      case 'medium': return 'secondary';
+      default: return 'outline';
     }
   };
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Queue Status</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.pending || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              Pending jobs
-            </p>
-          </CardContent>
-        </Card>
+      {/* System Status Overview */}
+      {systemStats && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <Shield className="h-5 w-5 text-green-500" />
+                <div>
+                  <div className="font-semibold">{systemStats.available_profiles}</div>
+                  <div className="text-sm text-muted-foreground">Stealth Profiles</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Stealth Profiles</CardTitle>
-            <Eye className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.available_profiles || 0}</div>
-            <p className="text-xs text-muted-foreground">
-              Available fingerprints
-            </p>
-          </CardContent>
-        </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-blue-500" />
+                <div>
+                  <div className="font-semibold">{systemStats.total}</div>
+                  <div className="text-sm text-muted-foreground">Total Jobs</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <Clock className="h-5 w-5 text-orange-500" />
+                <div>
+                  <div className="font-semibold">{systemStats.pending}</div>
+                  <div className="text-sm text-muted-foreground">Pending</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-5 w-5 text-green-500" />
+                <div>
+                  <div className="font-semibold">{systemStats.completed}</div>
+                  <div className="text-sm text-muted-foreground">Completed</div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Stealth Features Overview */}
+      {systemStats && (
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
-            <Shield className="h-4 w-4 text-muted-foreground" />
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Brain className="h-5 w-5" />
+              Level 3 Intelligence Features
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {stats ? Math.round((stats.completed / (stats.total || 1)) * 100) : 0}%
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              {systemStats.stealth_features.map((feature, index) => (
+                <Badge key={index} variant="outline" className="justify-start">
+                  <Zap className="h-3 w-3 mr-1" />
+                  {feature}
+                </Badge>
+              ))}
             </div>
-            <p className="text-xs text-muted-foreground">
-              Anti-detection success
-            </p>
+            
+            {systemStats.captcha_solver_configured && (
+              <Alert className="mt-4">
+                <Shield className="h-4 w-4" />
+                <AlertDescription>
+                  CAPTCHA solver is configured and ready for advanced anti-detection.
+                </AlertDescription>
+              </Alert>
+            )}
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">CAPTCHA Solver</CardTitle>
-            <Brain className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {stats?.captcha_solver_configured ? 'ON' : 'OFF'}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Auto-solving status
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      )}
 
       <Tabs defaultValue="scrape" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="scrape">Direct Scrape</TabsTrigger>
-          <TabsTrigger value="queue">Job Queue</TabsTrigger>
-          <TabsTrigger value="status">System Status</TabsTrigger>
+          <TabsTrigger value="scrape">Stealth Scraping</TabsTrigger>
+          <TabsTrigger value="jobs">Job Queue</TabsTrigger>
+          <TabsTrigger value="results">Results</TabsTrigger>
         </TabsList>
 
         <TabsContent value="scrape" className="space-y-4">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Zap className="h-5 w-5" />
-                Direct Stealth Scraping
+                <Eye className="h-5 w-5" />
+                Anti-Detection Scraping
               </CardTitle>
-              <CardDescription>
-                Immediately scrape a URL using advanced anti-detection techniques
-              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex gap-2">
                 <Input
-                  placeholder="Enter URL to scrape (e.g., https://example.com)"
+                  placeholder="https://example.com"
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   className="flex-1"
                 />
-                <Button 
-                  onClick={handleDirectScrape} 
-                  disabled={isLoading}
-                  className="sm:w-auto"
-                >
-                  {isLoading ? 'Scraping...' : 'Scrape Now'}
-                </Button>
-              </div>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-muted rounded-lg">
-                <div className="flex items-center gap-2">
-                  <Shield className="h-4 w-4 text-green-500" />
-                  <span className="text-sm">Browser Fingerprint Rotation</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Users className="h-4 w-4 text-blue-500" />
-                  <span className="text-sm">Human Behavior Simulation</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Globe className="h-4 w-4 text-purple-500" />
-                  <span className="text-sm">Residential Proxy Support</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Brain className="h-4 w-4 text-orange-500" />
-                  <span className="text-sm">CAPTCHA Auto-Solving</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="queue" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Activity className="h-5 w-5" />
-                Distributed Job Queue
-              </CardTitle>
-              <CardDescription>
-                Manage scraping jobs with priority queuing and distributed processing
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Input
-                  placeholder="Enter URL to add to queue"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  className="flex-1"
-                />
-                <Select value={priority} onValueChange={(value: 'low' | 'medium' | 'high') => setPriority(value)}>
+                <Select value={priority} onValueChange={setPriority}>
                   <SelectTrigger className="w-32">
                     <SelectValue />
                   </SelectTrigger>
@@ -365,124 +294,152 @@ export default function StealthScrapingInterface() {
                     <SelectItem value="high">High</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="flex gap-2">
                 <Button 
-                  onClick={handleEnqueueJob} 
-                  disabled={isLoading}
+                  onClick={runDirectScrape} 
+                  disabled={!url || isLoading}
+                  className="flex items-center gap-2"
+                >
+                  {isLoading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+                  Direct Scrape
+                </Button>
+                
+                <Button 
+                  onClick={enqueueJob} 
+                  disabled={!url || isLoading}
                   variant="outline"
+                  className="flex items-center gap-2"
                 >
-                  Enqueue
+                  <Plus className="h-4 w-4" />
+                  Queue Job
                 </Button>
               </div>
 
-              <div className="flex gap-4">
-                <Button 
-                  onClick={handleProcessQueue} 
-                  disabled={isLoading}
-                  className="flex-1"
-                >
-                  Process Next Job
-                </Button>
+              <div className="text-sm text-muted-foreground space-y-1">
+                <p><strong>Direct Scrape:</strong> Immediate stealth scraping with random profile</p>
+                <p><strong>Queue Job:</strong> Add to distributed job queue for processing</p>
               </div>
-
-              {stats && (
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Queue Progress</span>
-                    <span>{stats.completed}/{stats.total}</span>
-                  </div>
-                  <Progress 
-                    value={stats.total > 0 ? (stats.completed / stats.total) * 100 : 0} 
-                    className="w-full"
-                  />
-                </div>
-              )}
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="status" className="space-y-4">
+        <TabsContent value="jobs" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Globe className="h-5 w-5" />
-                System Status & Capabilities
-              </CardTitle>
-              <CardDescription>
-                Overview of stealth features and system performance
-              </CardDescription>
+              <CardTitle>Stealth Job Queue</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {stats?.stealth_features && (
-                <div>
-                  <h4 className="font-medium mb-2">Active Stealth Features</h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {stats.stealth_features.map((feature, index) => (
-                      <Badge key={index} variant="secondary" className="justify-start">
-                        {feature}
-                      </Badge>
-                    ))}
-                  </div>
+            <CardContent>
+              {jobs.length === 0 ? (
+                <div className="text-center text-muted-foreground py-8">
+                  No jobs yet. Create your first stealth scraping job above.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {jobs.map((job) => (
+                    <div
+                      key={job.job_id}
+                      className="border rounded-lg p-4 cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => setSelectedJob(job)}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium truncate">{job.url}</div>
+                          <div className="text-sm text-muted-foreground">
+                            {new Date(job.created_at).toLocaleString()}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 ml-4">
+                          <Badge variant={getPriorityColor(job.priority)}>
+                            {job.priority}
+                          </Badge>
+                          <Badge variant={getStatusColor(job.status)}>
+                            {job.status}
+                          </Badge>
+                          {job.captcha_encountered && (
+                            <Badge variant="outline">
+                              <Shield className="h-3 w-3 mr-1" />
+                              CAPTCHA
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {job.profile_used && (
+                        <div className="text-sm text-muted-foreground mt-2">
+                          Profile: {job.profile_used}
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
-                <div>
-                  <div className="text-2xl font-bold text-blue-500">{stats?.pending || 0}</div>
-                  <div className="text-xs text-muted-foreground">Pending</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-yellow-500">{stats?.processing || 0}</div>
-                  <div className="text-xs text-muted-foreground">Processing</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-green-500">{stats?.completed || 0}</div>
-                  <div className="text-xs text-muted-foreground">Completed</div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-red-500">{stats?.failed || 0}</div>
-                  <div className="text-xs text-muted-foreground">Failed</div>
-                </div>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
-      </Tabs>
 
-      {recentJobs.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Jobs</CardTitle>
-            <CardDescription>Latest scraping activities</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {recentJobs.map((job, index) => (
-                <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <Badge className={getPriorityColor(job.priority)}>
-                      {job.priority}
-                    </Badge>
-                    <span className="text-sm font-medium">{job.job_id}</span>
-                    <span className="text-sm text-muted-foreground truncate max-w-xs">
-                      {job.url}
-                    </span>
-                  </div>
-                  {job.metadata && (
-                    <div className="flex items-center gap-2">
-                      {job.metadata.captcha_encountered && (
-                        <AlertCircle className="h-4 w-4 text-orange-500" />
-                      )}
-                      <span className="text-xs text-muted-foreground">
-                        {job.metadata.profile_used}
-                      </span>
-                    </div>
-                  )}
+        <TabsContent value="results" className="space-y-4">
+          {selectedJob ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Scraping Results</span>
+                  <Badge variant={getStatusColor(selectedJob.status)}>
+                    {selectedJob.status}
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <h4 className="font-medium mb-2">Target URL</h4>
+                  <CodeBlock code={selectedJob.url} />
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+
+                {selectedJob.structured_data && (
+                  <div>
+                    <h4 className="font-medium mb-2">Extracted Data</h4>
+                    <CodeBlock code={JSON.stringify(selectedJob.structured_data, null, 2)} />
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="font-medium mb-2">Job Details</h4>
+                    <div className="text-sm space-y-1">
+                      <p><strong>Priority:</strong> {selectedJob.priority}</p>
+                      <p><strong>Created:</strong> {new Date(selectedJob.created_at).toLocaleString()}</p>
+                      {selectedJob.profile_used && (
+                        <p><strong>Profile:</strong> {selectedJob.profile_used}</p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-medium mb-2">Security Features</h4>
+                    <div className="text-sm space-y-1">
+                      <p><strong>Anti-Detection:</strong> ✓ Enabled</p>
+                      <p><strong>Human Behavior:</strong> ✓ Simulated</p>
+                      <p><strong>CAPTCHA Detection:</strong> {selectedJob.captcha_encountered ? '⚠️ Found' : '✓ None'}</p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="text-center py-8">
+                <Globe className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">
+                  Select a job from the queue to view detailed results
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
-}
+};
+
+export default StealthScrapingInterface;
