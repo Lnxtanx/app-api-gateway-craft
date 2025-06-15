@@ -1,5 +1,6 @@
 
 import { useState } from 'react';
+import Header from '@/components/Header';
 import AdvancedApiFeatures from '@/components/AdvancedApiFeatures';
 import RealTimeNotifications from '@/components/RealTimeNotifications';
 import IntelligentContentAnalyzer from '@/components/IntelligentContentAnalyzer';
@@ -210,6 +211,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
+      <Header />
       <main className="flex-grow container mx-auto px-4 py-16 flex flex-col items-center text-center">
         <h2 className="text-4xl md:text-6xl font-extrabold tracking-tighter mb-4">
           Create an API from any website
