@@ -189,49 +189,49 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-blue-950 dark:to-indigo-900 text-foreground flex flex-col relative overflow-hidden">
-      {/* Animated background elements */}
+    <div className="min-h-screen bg-black text-white flex flex-col relative overflow-hidden">
+      {/* Animated background elements for dark theme */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-600/20 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-indigo-400/20 to-pink-600/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-cyan-400/10 to-blue-600/10 rounded-full blur-3xl animate-pulse delay-500"></div>
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-500/10 to-purple-600/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-indigo-500/10 to-pink-600/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-cyan-500/5 to-blue-600/5 rounded-full blur-3xl animate-pulse delay-500"></div>
       </div>
 
       <Header />
 
-      {/* Hero Section with Enhanced Design */}
-      <section className="relative bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-indigo-600/10 px-4 py-16 mb-8 border-b backdrop-blur-sm">
+      {/* Hero Section with Dark Theme */}
+      <section className="relative bg-gradient-to-r from-blue-600/5 via-purple-600/5 to-indigo-600/5 px-4 py-16 mb-8 border-b border-gray-800 backdrop-blur-sm">
         <div className="container mx-auto max-w-4xl text-center relative z-10">
           <div className="flex items-center justify-center gap-2 mb-6 animate-fade-in">
-            <Sparkles className="h-8 w-8 text-yellow-500 animate-pulse" />
-            <h2 className="text-3xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <Sparkles className="h-8 w-8 text-yellow-400 animate-pulse" />
+            <h2 className="text-3xl md:text-5xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
               Advanced API Generation Platform
             </h2>
-            <Zap className="h-8 w-8 text-blue-500 animate-pulse" />
+            <Zap className="h-8 w-8 text-blue-400 animate-pulse" />
           </div>
           
-          <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mb-8 animate-fade-in delay-200">
+          <p className="text-lg md:text-xl text-gray-300 leading-relaxed mb-8 animate-fade-in delay-200">
             Transform any website into a powerful, intelligent API endpoint with our cutting-edge platform.
             <br />
-            <span className="font-semibold text-foreground">No coding required. Enterprise-grade security included.</span>
+            <span className="font-semibold text-white">No coding required. Enterprise-grade security included.</span>
           </p>
 
           {/* Feature Cards */}
           <div className="grid md:grid-cols-3 gap-6 mt-12 animate-fade-in delay-400">
-            <div className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border hover:scale-105 transition-all duration-300 hover:shadow-xl">
-              <Globe className="h-12 w-12 text-blue-500 mx-auto mb-4" />
-              <h3 className="font-bold text-lg mb-2">Universal Compatibility</h3>
-              <p className="text-sm text-muted-foreground">Works with any website, any data structure</p>
+            <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl p-6 border border-gray-800 hover:scale-105 transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/10">
+              <Globe className="h-12 w-12 text-blue-400 mx-auto mb-4" />
+              <h3 className="font-bold text-lg mb-2 text-white">Universal Compatibility</h3>
+              <p className="text-sm text-gray-400">Works with any website, any data structure</p>
             </div>
-            <div className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border hover:scale-105 transition-all duration-300 hover:shadow-xl">
-              <Shield className="h-12 w-12 text-green-500 mx-auto mb-4" />
-              <h3 className="font-bold text-lg mb-2">Enterprise Security</h3>
-              <p className="text-sm text-muted-foreground">Bank-grade encryption and access control</p>
+            <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl p-6 border border-gray-800 hover:scale-105 transition-all duration-300 hover:shadow-2xl hover:shadow-green-500/10">
+              <Shield className="h-12 w-12 text-green-400 mx-auto mb-4" />
+              <h3 className="font-bold text-lg mb-2 text-white">Enterprise Security</h3>
+              <p className="text-sm text-gray-400">Bank-grade encryption and access control</p>
             </div>
-            <div className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border hover:scale-105 transition-all duration-300 hover:shadow-xl">
-              <Zap className="h-12 w-12 text-purple-500 mx-auto mb-4" />
-              <h3 className="font-bold text-lg mb-2">Lightning Fast</h3>
-              <p className="text-sm text-muted-foreground">Sub-second response times guaranteed</p>
+            <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl p-6 border border-gray-800 hover:scale-105 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/10">
+              <Zap className="h-12 w-12 text-purple-400 mx-auto mb-4" />
+              <h3 className="font-bold text-lg mb-2 text-white">Lightning Fast</h3>
+              <p className="text-sm text-gray-400">Sub-second response times guaranteed</p>
             </div>
           </div>
         </div>
@@ -240,10 +240,10 @@ const Index = () => {
       {/* Main Content */}
       <header className="py-12 relative z-10">
         <div className="container mx-auto text-center">
-          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tighter mb-4 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent animate-fade-in">
+          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tighter mb-4 bg-gradient-to-r from-blue-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent animate-fade-in">
             API Maker
           </h1>
-          <p className="text-xl text-muted-foreground animate-fade-in delay-200">
+          <p className="text-xl text-gray-300 animate-fade-in delay-200">
             Enter a website URL to instantly generate a structured API endpoint.
           </p>
         </div>
@@ -258,14 +258,14 @@ const Index = () => {
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               required
-              className="h-14 text-lg border-2 focus:border-primary transition-all duration-300 bg-white/80 backdrop-blur-sm shadow-lg hover:shadow-xl pl-4"
+              className="h-14 text-lg border-2 border-gray-700 bg-gray-900/50 text-white placeholder:text-gray-400 focus:border-blue-500 transition-all duration-300 backdrop-blur-sm shadow-2xl hover:shadow-blue-500/10 pl-4"
             />
-            <div className="absolute inset-0 rounded-md bg-gradient-to-r from-blue-500/20 to-purple-500/20 -z-10 blur"></div>
+            <div className="absolute inset-0 rounded-md bg-gradient-to-r from-blue-500/10 to-purple-500/10 -z-10 blur"></div>
           </div>
           <Button 
             type="submit" 
             size="lg" 
-            className="h-14 px-8 gap-3 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 hover:from-blue-700 hover:via-purple-700 hover:to-indigo-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 text-white font-semibold" 
+            className="h-14 px-8 gap-3 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 hover:from-blue-700 hover:via-purple-700 hover:to-indigo-700 transition-all duration-300 shadow-2xl hover:shadow-blue-500/20 hover:scale-105 text-white font-semibold border-0" 
             disabled={isLoading}
           >
             {isLoading ? (
@@ -279,13 +279,13 @@ const Index = () => {
         </form>
 
         {!user && !isLoading && (
-          <div className="text-lg text-amber-600 bg-gradient-to-r from-amber-50/80 to-orange-50/80 backdrop-blur-sm border border-amber-200 p-8 rounded-2xl mb-12 animate-fade-in delay-600 hover:scale-105 transition-all duration-300 shadow-lg">
+          <div className="text-lg text-amber-400 bg-gradient-to-r from-amber-900/20 to-orange-900/20 backdrop-blur-sm border border-amber-700/30 p-8 rounded-2xl mb-12 animate-fade-in delay-600 hover:scale-105 transition-all duration-300 shadow-2xl">
             <div className="flex items-center gap-4">
-              <Shield className="h-8 w-8 text-amber-500" />
+              <Shield className="h-8 w-8 text-amber-400" />
               <div>
-                <p className="font-semibold text-xl">Authentication Required</p>
-                <p className="text-base mt-2">
-                  Please <Link to="/auth" className="font-bold underline hover:text-amber-700 transition-colors">log in</Link> to save and manage your generated APIs.
+                <p className="font-semibold text-xl text-white">Authentication Required</p>
+                <p className="text-base mt-2 text-gray-300">
+                  Please <Link to="/auth" className="font-bold underline hover:text-amber-300 transition-colors">log in</Link> to save and manage your generated APIs.
                 </p>
               </div>
             </div>
@@ -295,11 +295,11 @@ const Index = () => {
         {apiResult && (
           <div className="w-full max-w-7xl text-left animate-fade-in duration-700">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm">
-                <TabsTrigger value="response" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white transition-all duration-300">
+              <TabsList className="grid w-full grid-cols-2 bg-gray-900/50 backdrop-blur-sm border border-gray-800">
+                <TabsTrigger value="response" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white transition-all duration-300 text-gray-300">
                   API Response
                 </TabsTrigger>
-                <TabsTrigger value="query" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white transition-all duration-300">
+                <TabsTrigger value="query" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white transition-all duration-300 text-gray-300">
                   Query Interface
                 </TabsTrigger>
               </TabsList>
@@ -314,22 +314,22 @@ const Index = () => {
                     />
                   </div>
                 ) : (
-                  <Card className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border-2 hover:shadow-xl transition-all duration-300">
+                  <Card className="bg-gray-900/50 backdrop-blur-sm border-2 border-gray-800 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300">
                     <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Sparkles className="h-5 w-5 text-green-500" />
+                      <CardTitle className="flex items-center gap-2 text-white">
+                        <Sparkles className="h-5 w-5 text-green-400" />
                         API Generated Successfully!
                       </CardTitle>
-                      <CardDescription>Your API is ready! Use the Query Interface to test it.</CardDescription>
+                      <CardDescription className="text-gray-400">Your API is ready! Use the Query Interface to test it.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                      <div className="p-4 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950 dark:to-blue-950 rounded-lg border">
-                        <p className="text-sm font-medium text-muted-foreground mb-2">Endpoint:</p>
-                        <code className="bg-white dark:bg-slate-800 px-3 py-2 rounded border text-sm break-all">{apiResult.endpoint}</code>
+                      <div className="p-4 bg-gradient-to-r from-green-900/20 to-blue-900/20 rounded-lg border border-gray-700">
+                        <p className="text-sm font-medium text-gray-300 mb-2">Endpoint:</p>
+                        <code className="bg-gray-800 text-green-400 px-3 py-2 rounded border border-gray-700 text-sm break-all block">{apiResult.endpoint}</code>
                       </div>
-                      <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 rounded-lg border">
-                        <p className="text-sm font-medium text-muted-foreground mb-2">API Key:</p>
-                        <code className="bg-white dark:bg-slate-800 px-3 py-2 rounded border text-sm break-all">{apiResult.apiKey}</code>
+                      <div className="p-4 bg-gradient-to-r from-purple-900/20 to-pink-900/20 rounded-lg border border-gray-700">
+                        <p className="text-sm font-medium text-gray-300 mb-2">API Key:</p>
+                        <code className="bg-gray-800 text-purple-400 px-3 py-2 rounded border border-gray-700 text-sm break-all block">{apiResult.apiKey}</code>
                       </div>
                     </CardContent>
                   </Card>
@@ -352,11 +352,11 @@ const Index = () => {
         )}
       </main>
 
-      <footer className="py-8 border-t bg-white/30 dark:bg-slate-900/30 backdrop-blur-sm relative z-10">
+      <footer className="py-8 border-t border-gray-800 bg-gray-900/30 backdrop-blur-sm relative z-10">
         <div className="container mx-auto text-center">
-          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+          <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
             <span>Built with</span>
-            <span className="text-red-500 animate-pulse">♥</span>
+            <span className="text-red-400 animate-pulse">♥</span>
             <span>by Lovable &amp; Vivek</span>
           </div>
         </div>

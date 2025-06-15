@@ -9,14 +9,14 @@ const Header = () => {
   const { user, signOut } = useAuth();
 
   return (
-    <header className="border-b bg-white/70 dark:bg-slate-900/70 backdrop-blur-md supports-[backdrop-filter]:bg-white/60 dark:supports-[backdrop-filter]:bg-slate-900/60 sticky top-0 z-50 shadow-sm">
+    <header className="border-b border-gray-800 bg-black/70 backdrop-blur-md sticky top-0 z-50 shadow-xl shadow-black/20">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <div className="flex items-center gap-8">
           <Link to="/" className="flex items-center gap-3 font-bold text-xl hover:scale-105 transition-transform duration-200">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/25">
               <Globe className="h-5 w-5 text-white" />
             </div>
-            <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
               WebAPI Generator
             </span>
           </Link>
@@ -25,19 +25,19 @@ const Header = () => {
             <nav className="flex items-center gap-6">
               <Link 
                 to="/dashboard" 
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors hover:scale-105 duration-200 px-3 py-2 rounded-lg hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 dark:hover:from-blue-950 dark:hover:to-purple-950"
+                className="text-sm font-medium text-gray-300 hover:text-white transition-colors hover:scale-105 duration-200 px-3 py-2 rounded-lg hover:bg-gradient-to-r hover:from-blue-900/20 hover:to-purple-900/20 border border-transparent hover:border-gray-700"
               >
                 Dashboard
               </Link>
               <Link 
                 to="/api-tester" 
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors hover:scale-105 duration-200 px-3 py-2 rounded-lg hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 dark:hover:from-blue-950 dark:hover:to-purple-950"
+                className="text-sm font-medium text-gray-300 hover:text-white transition-colors hover:scale-105 duration-200 px-3 py-2 rounded-lg hover:bg-gradient-to-r hover:from-blue-900/20 hover:to-purple-900/20 border border-transparent hover:border-gray-700"
               >
                 API Tester
               </Link>
               <Link 
                 to="/business-intelligence" 
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors hover:scale-105 duration-200 px-3 py-2 rounded-lg hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 dark:hover:from-blue-950 dark:hover:to-purple-950"
+                className="text-sm font-medium text-gray-300 hover:text-white transition-colors hover:scale-105 duration-200 px-3 py-2 rounded-lg hover:bg-gradient-to-r hover:from-blue-900/20 hover:to-purple-900/20 border border-transparent hover:border-gray-700"
               >
                 Analytics
               </Link>
@@ -48,9 +48,9 @@ const Header = () => {
         <div className="flex items-center gap-4">
           {user ? (
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 rounded-lg border">
-                <User className="h-4 w-4 text-blue-500" />
-                <span className="text-sm text-muted-foreground">
+              <div className="flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-blue-900/20 to-purple-900/20 rounded-lg border border-gray-700">
+                <User className="h-4 w-4 text-blue-400" />
+                <span className="text-sm text-gray-300">
                   {user.email}
                 </span>
               </div>
@@ -58,7 +58,7 @@ const Header = () => {
                 variant="outline" 
                 size="sm" 
                 onClick={() => signOut()}
-                className="hover:bg-gradient-to-r hover:from-red-50 hover:to-pink-50 dark:hover:from-red-950 dark:hover:to-pink-950 hover:border-red-200 hover:text-red-600 transition-all duration-200"
+                className="hover:bg-gradient-to-r hover:from-red-900/20 hover:to-pink-900/20 hover:border-red-500/30 hover:text-red-400 transition-all duration-200 bg-gray-900/50 border-gray-700 text-gray-300"
               >
                 <LogOut className="h-4 w-4 mr-2" />
                 Sign Out
@@ -69,7 +69,7 @@ const Header = () => {
               <Button 
                 variant="outline" 
                 size="sm"
-                className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 hover:from-blue-100 hover:to-purple-100 dark:hover:from-blue-900 dark:hover:to-purple-900 border-blue-200 hover:border-purple-300 transition-all duration-200 hover:scale-105"
+                className="bg-gradient-to-r from-blue-900/20 to-purple-900/20 hover:from-blue-800/30 hover:to-purple-800/30 border-blue-500/30 hover:border-purple-400/50 transition-all duration-200 hover:scale-105 text-gray-300 hover:text-white"
               >
                 Sign In
               </Button>
