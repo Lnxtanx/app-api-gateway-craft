@@ -102,13 +102,20 @@ const Index = () => {
       const scrapedData = await initialScrapeResponse.json();
 
       // Extract available fields for query interface
-      if (scrapedData.data && scrapedData.data.length > 0) {
-        const fields = Object.keys(scrapedData.data[0]);
-        setAvailableFields(fields);
-      } else {
-        // Fallback fields if no data is available
-        setAvailableFields(['title', 'content', 'price', 'category', 'author', 'date']);
+      let fields: string[] = [];
+      if (scrapedData.data && Array.isArray(scrapedData.data) && scrapedData.data.length > 0) {
+        const firstItem = scrapedData.data[0];
+        if (firstItem && typeof firstItem === 'object') {
+          fields = Object.keys(firstItem);
+        }
       }
+      
+      // Set fallback fields if no fields were extracted
+      if (fields.length === 0) {
+        fields = ['title', 'content', 'price', 'category', 'author', 'date'];
+      }
+      
+      setAvailableFields(fields);
 
       // Extract HTML content for intelligent analysis
       if (scrapedData.api?.source_url) {
