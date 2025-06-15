@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -59,29 +58,55 @@ const StealthScrapingInterface: React.FC = () => {
 
   const fetchSystemStats = async () => {
     try {
+      console.log('🔍 Fetching system stats...');
       const { data, error } = await supabase.functions.invoke('stealth-scraper', {
         body: {},
         headers: { 'Content-Type': 'application/json' }
       });
 
-      if (error) throw error;
+      console.log('📊 System stats response:', { data, error });
+
+      if (error) {
+        console.error('❌ Error fetching system stats:', error);
+        throw error;
+      }
+      
       setSystemStats(data);
+      console.log('✅ System stats updated successfully');
     } catch (error) {
-      console.error('Failed to fetch system stats:', error);
+      console.error('💥 Failed to fetch system stats:', error);
+      toast({
+        title: "Error",
+        description: `Failed to fetch system stats: ${error.message}`,
+        variant: "destructive",
+      });
     }
   };
 
   const enqueueJob = async () => {
-    if (!url) return;
+    if (!url) {
+      toast({
+        title: "Error",
+        description: "Please enter a URL",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsLoading(true);
     try {
+      console.log('📋 Enqueuing job for URL:', url);
       const { data, error } = await supabase.functions.invoke('stealth-scraper', {
         body: { action: 'enqueue', url, priority },
         headers: { 'Content-Type': 'application/json' }
       });
 
-      if (error) throw error;
+      console.log('📋 Enqueue response:', { data, error });
+
+      if (error) {
+        console.error('❌ Error enqueuing job:', error);
+        throw error;
+      }
 
       const newJob: StealthJob = {
         job_id: data.job_id,
@@ -102,9 +127,10 @@ const StealthScrapingInterface: React.FC = () => {
       // Refresh stats
       await fetchSystemStats();
     } catch (error: any) {
+      console.error('💥 Failed to enqueue job:', error);
       toast({
         title: "Error",
-        description: error.message,
+        description: `Failed to enqueue job: ${error.message}`,
         variant: "destructive",
       });
     } finally {
@@ -113,16 +139,29 @@ const StealthScrapingInterface: React.FC = () => {
   };
 
   const runDirectScrape = async () => {
-    if (!url) return;
+    if (!url) {
+      toast({
+        title: "Error",
+        description: "Please enter a URL",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsLoading(true);
     try {
+      console.log('🚀 Starting direct scrape for URL:', url);
       const { data, error } = await supabase.functions.invoke('stealth-scraper', {
         body: { action: 'scrape', url },
         headers: { 'Content-Type': 'application/json' }
       });
 
-      if (error) throw error;
+      console.log('🚀 Direct scrape response:', { data, error });
+
+      if (error) {
+        console.error('❌ Error in direct scrape:', error);
+        throw error;
+      }
 
       const newJob: StealthJob = {
         job_id: `direct-${Date.now()}`,
@@ -139,14 +178,16 @@ const StealthScrapingInterface: React.FC = () => {
       setSelectedJob(newJob);
       setUrl('');
       
+      console.log('✅ Direct scrape completed successfully');
       toast({
         title: "Direct Scrape Complete",
         description: `Successfully scraped ${data.url} using ${data.metadata?.profile_used}`,
       });
     } catch (error: any) {
+      console.error('💥 Direct scraping failed:', error);
       toast({
         title: "Scraping Failed",
-        description: error.message,
+        description: `Scraping failed: ${error.message}`,
         variant: "destructive",
       });
     } finally {
@@ -155,6 +196,7 @@ const StealthScrapingInterface: React.FC = () => {
   };
 
   React.useEffect(() => {
+    console.log('🎯 Component mounted, fetching system stats...');
     fetchSystemStats();
   }, []);
 
