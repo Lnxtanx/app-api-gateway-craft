@@ -112,21 +112,22 @@ serve(async (req) => {
   }
 
   try {
-    const apiId = req.url.split('/').pop()
-    if (!apiId) {
-      return new Response(JSON.stringify({ error: 'API ID is required' }), {
+    // Extract API ID from the URL path
+    const url = new URL(req.url);
+    const pathParts = url.pathname.split('/');
+    const apiId = pathParts[pathParts.length - 1]; // Get the last part of the path
+    
+    console.log('Extracted API ID:', apiId);
+    console.log('Full URL path:', url.pathname);
+    
+    if (!apiId || apiId === 'extract-api') {
+      return new Response(JSON.stringify({ error: 'API ID is required in the URL path' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
-    // Create a Supabase client with the user's auth token
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: req.headers.get('Authorization')! } } }
-    )
-
+    // Create a Supabase admin client to query the database
     const supabase = createClient(
         Deno.env.get('SUPABASE_URL') ?? '',
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -137,22 +138,28 @@ serve(async (req) => {
         }
     );
 
-    // Get API details from database
+    // Get API details from database using the extracted API ID
     const { data: apiData, error: apiError } = await supabase
       .from('generated_apis')
       .select('*')
-      .eq('id', apiId)
+      .eq('api_endpoint', `${Deno.env.get('SUPABASE_URL')}/functions/v1/extract-api/${apiId}`)
       .single()
 
+    console.log('Database query result:', { apiData, apiError });
+
     if (apiError || !apiData) {
-      return new Response(JSON.stringify({ error: 'API not found' }), {
+      console.error('API not found in database:', apiError);
+      return new Response(JSON.stringify({ 
+        error: 'API not found',
+        details: `No API found with endpoint ending in ${apiId}`,
+        apiId 
+      }), {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
 
     // Parse query parameters for advanced processing
-    const url = new URL(req.url);
     const queryParams = {
       search: url.searchParams.get('search') || undefined,
       filters: {},
