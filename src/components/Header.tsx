@@ -23,12 +23,6 @@ const Header = () => {
                 Dashboard
               </Link>
               <Link 
-                to="/stealth-scraping" 
-                className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-              >
-                🛡️ Stealth Scraping
-              </Link>
-              <Link 
                 to="/api-tester" 
                 className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
               >

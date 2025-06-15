@@ -189,7 +189,32 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
-      <Header /> {/* Added Header to the top */}
+      <Header />
+
+      {/* Detailed Overview Section */}
+      <section className="bg-muted px-4 py-8 mb-6 border-b">
+        <div className="container mx-auto max-w-3xl text-center">
+          <h2 className="text-2xl md:text-3xl font-bold mb-2 text-primary">
+            Advanced API Generation & Testing Platform
+          </h2>
+          <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
+            Welcome to your one-stop solution for transforming website data into powerful APIs for business intelligence and automation.
+            <br /><br />
+            <b>How it works:</b> Instantly generate structured API endpoints from any website URL and receive a secure API key. Use our intelligent platform to query, test, and analyze the generated endpoints with customizable parameters, sorting, and filtering—no manual backend coding required! 
+            <br /><br />
+            <b>Key Benefits:</b>
+            <ul className="list-disc text-left mx-auto max-w-xl mt-2 mb-0 pl-8 text-base text-muted-foreground">
+              <li>🔑 <b>API Maker:</b> Generate unique API keys for each website, unlocking secure access to real-time web data.</li>
+              <li>🧠 <b>Intelligent Query Engine:</b> Easily test, sort, and filter data using a modern and user-friendly interface.</li>
+              <li>📈 <b>Business-Ready:</b> Empower your applications, automate workflows, and enhance analytics with reliable API endpoints tailored for any business need.</li>
+              <li>🤖 <b>No-Code & Secure:</b> Forget about complex backend logic or scraping scripts—our system handles everything with enterprise-grade security.</li>
+            </ul>
+            <br />
+            <b>Get started by generating your API below. Perfect for analysts, developers, and business teams seeking advanced, intelligent data integration.</b>
+          </p>
+        </div>
+      </section>
+
       <header className="py-8">
         <div className="container mx-auto">
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter mb-2 text-primary">
