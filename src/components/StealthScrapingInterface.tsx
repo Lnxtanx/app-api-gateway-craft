@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,7 +25,10 @@ import {
   Plus,
   BarChart3,
   Database,
-  ExternalLink
+  ExternalLink,
+  Lock,
+  Target,
+  Cpu
 } from 'lucide-react';
 import CodeBlock from './CodeBlock';
 
@@ -58,7 +62,7 @@ interface SystemStats {
 const StealthScrapingInterface: React.FC = () => {
   const [url, setUrl] = useState('');
   const [priority, setPriority] = useState('medium');
-  const [stealthLevel, setStealthLevel] = useState<1 | 2>(1);
+  const [stealthLevel, setStealthLevel] = useState<1 | 2 | 3>(1);
   const [isLoading, setIsLoading] = useState(false);
   const [jobs, setJobs] = useState<StealthJob[]>([]);
   const [systemStats, setSystemStats] = useState<SystemStats | null>(null);
@@ -278,6 +282,24 @@ const StealthScrapingInterface: React.FC = () => {
     }
   };
 
+  const getStealthLevelIcon = (level: number) => {
+    switch (level) {
+      case 1: return <Shield className="h-4 w-4" />;
+      case 2: return <Brain className="h-4 w-4" />;
+      case 3: return <Lock className="h-4 w-4" />;
+      default: return <Shield className="h-4 w-4" />;
+    }
+  };
+
+  const getStealthLevelColor = (level: number) => {
+    switch (level) {
+      case 1: return 'text-blue-500';
+      case 2: return 'text-purple-500';
+      case 3: return 'text-red-500';
+      default: return 'text-blue-500';
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* System Status Overview */}
@@ -300,7 +322,7 @@ const StealthScrapingInterface: React.FC = () => {
               <div className="flex items-center gap-2">
                 <BarChart3 className="h-5 w-5 text-blue-500" />
                 <div>
-                  <div className="font-semibold">Level 1 & 2</div>
+                  <div className="font-semibold">Level 1-3</div>
                   <div className="text-sm text-muted-foreground">Stealth Levels</div>
                 </div>
               </div>
@@ -310,9 +332,9 @@ const StealthScrapingInterface: React.FC = () => {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
-                <Clock className="h-5 w-5 text-orange-500" />
+                <Target className="h-5 w-5 text-orange-500" />
                 <div>
-                  <div className="font-semibold">60-85%</div>
+                  <div className="font-semibold">60-95%</div>
                   <div className="text-sm text-muted-foreground">Success Rate</div>
                 </div>
               </div>
@@ -324,8 +346,8 @@ const StealthScrapingInterface: React.FC = () => {
               <div className="flex items-center gap-2">
                 <CheckCircle className="h-5 w-5 text-green-500" />
                 <div>
-                  <div className="font-semibold">{systemStats.completed}</div>
-                  <div className="text-sm text-muted-foreground">Completed</div>
+                  <div className="font-semibold">{systemStats.captcha_solver_configured ? 'Yes' : 'No'}</div>
+                  <div className="text-sm text-muted-foreground">CAPTCHA Solver</div>
                 </div>
               </div>
             </CardContent>
@@ -335,7 +357,7 @@ const StealthScrapingInterface: React.FC = () => {
 
       {/* Stealth Levels Overview */}
       {systemStats && systemStats.stealth_levels && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -365,6 +387,23 @@ const StealthScrapingInterface: React.FC = () => {
                 <div className="text-2xl font-bold text-purple-600">80-85% Success</div>
                 <div className="text-sm text-muted-foreground">
                   Fingerprint Masking, Session Management, Residential Proxies, Content-Aware Delays
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Lock className="h-5 w-5 text-red-500" />
+                Level 3: Advanced Anti-Detection
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="text-2xl font-bold text-red-600">90-95% Success</div>
+                <div className="text-sm text-muted-foreground">
+                  ML Evasion, CAPTCHA Solving, Traffic Distribution, Advanced Fingerprint Spoofing
                 </div>
               </div>
             </CardContent>
@@ -408,13 +447,14 @@ const StealthScrapingInterface: React.FC = () => {
               </div>
 
               <div className="flex gap-2">
-                <Select value={stealthLevel.toString()} onValueChange={(value) => setStealthLevel(parseInt(value) as 1 | 2)}>
-                  <SelectTrigger className="w-48">
+                <Select value={stealthLevel.toString()} onValueChange={(value) => setStealthLevel(parseInt(value) as 1 | 2 | 3)}>
+                  <SelectTrigger className="w-64">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="1">Level 1: Basic (60-70%)</SelectItem>
                     <SelectItem value="2">Level 2: Intermediate (80-85%)</SelectItem>
+                    <SelectItem value="3">Level 3: Advanced (90-95%)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -455,6 +495,14 @@ const StealthScrapingInterface: React.FC = () => {
                     <li>• Browser Fingerprint Masking & Session Management</li>
                     <li>• Residential Proxy Networks & Content-Aware Delays</li>
                     <li>• Enhanced Human Behavior Patterns</li>
+                  </ul>
+                )}
+                {stealthLevel === 3 && (
+                  <ul className="ml-4 space-y-1">
+                    <li>• All Level 2 features + Maximum protection</li>
+                    <li>• ML-Based Evasion & CAPTCHA Solving</li>
+                    <li>• Advanced Fingerprint Spoofing & Traffic Distribution</li>
+                    <li>• Browser Automation Stealth & Adaptive Intelligence</li>
                   </ul>
                 )}
                 {user && (
