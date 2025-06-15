@@ -316,7 +316,7 @@ const Index = () => {
           <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
             <span>Built with</span>
             <span className="text-red-500">♥</span>
-            <span>by Lovable</span>
+            <span>by Lovable &amp; Vivek</span>
           </div>
         </div>
       </footer>
