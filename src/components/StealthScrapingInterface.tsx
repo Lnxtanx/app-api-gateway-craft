@@ -94,16 +94,12 @@ const StealthScrapingInterface: React.FC = () => {
 
   const generateApiFromScrapeResult = async (scrapeResult: any) => {
     if (!user) {
-      toast({
-        title: "Authentication Required",
-        description: "Please log in to save APIs to dashboard",
-        variant: "destructive",
-      });
+      console.log('⚠️ User not logged in, skipping API generation');
       return null;
     }
 
     try {
-      console.log('🔧 Generating API from scrape result...');
+      console.log('🔧 Generating API from scrape result for:', scrapeResult.url);
       const { data: generatedApiData, error } = await supabase.functions.invoke('generate-api', {
         body: { source_url: scrapeResult.url },
       });
@@ -205,8 +201,10 @@ const StealthScrapingInterface: React.FC = () => {
         throw error;
       }
 
-      if (!data || !data.url) {
-        throw new Error('Invalid response from stealth scraper');
+      // Validate the response structure - check if it's actual scrape data
+      if (!data || !data.url || !data.structured_data) {
+        console.error('❌ Invalid scrape response structure:', data);
+        throw new Error('Invalid response from stealth scraper - expected scrape data but got stats');
       }
 
       // Generate API for the scraped data if user is logged in

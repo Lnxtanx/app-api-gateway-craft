@@ -76,6 +76,26 @@ serve(async (req) => {
       }
     } catch (error) {
       console.log('⚠️ No JSON body found or parse error:', error.message);
+      // If no body, default to stats action
+      const stats = await jobManager.getJobStats();
+      const systemStatus = {
+        ...stats,
+        available_profiles: BrowserFingerprintManager.getAllProfiles().length,
+        captcha_solver_configured: !!Deno.env.get('CAPTCHA_SOLVER_API_KEY'),
+        stealth_features: [
+          'Browser Fingerprint Rotation',
+          'Human Behavior Simulation',
+          'Anti-Detection Techniques',
+          'Request Pattern Randomization',
+          'Distributed Job Processing',
+          'Enhanced Data Extraction'
+        ]
+      };
+      
+      return new Response(JSON.stringify(systemStatus), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const action = requestBody.action || 'stats';
