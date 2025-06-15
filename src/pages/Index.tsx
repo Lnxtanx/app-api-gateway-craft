@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -189,14 +188,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col relative overflow-hidden">
-      {/* Animated background elements for dark theme */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-500/10 to-purple-600/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-indigo-500/10 to-pink-600/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-cyan-500/5 to-blue-600/5 rounded-full blur-3xl animate-pulse delay-500"></div>
-      </div>
-
+    <div className="min-h-screen bg-black text-white flex flex-col relative overflow-hidden animate-aurora">
       <Header />
 
       {/* Hero Section with Dark Theme */}
@@ -217,18 +209,18 @@ const Index = () => {
           </p>
 
           {/* Feature Cards */}
-          <div className="grid md:grid-cols-3 gap-6 mt-12 animate-fade-in delay-400">
-            <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl p-6 border border-gray-800 hover:scale-105 transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/10">
+          <div className="grid md:grid-cols-3 gap-8 mt-12 animate-fade-in delay-400">
+            <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl p-6 border border-gray-800 transition-all duration-300 shadow-2xl hover-lift">
               <Globe className="h-12 w-12 text-blue-400 mx-auto mb-4" />
               <h3 className="font-bold text-lg mb-2 text-white">Universal Compatibility</h3>
               <p className="text-sm text-gray-400">Works with any website, any data structure</p>
             </div>
-            <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl p-6 border border-gray-800 hover:scale-105 transition-all duration-300 hover:shadow-2xl hover:shadow-green-500/10">
+            <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl p-6 border border-gray-800 transition-all duration-300 shadow-2xl hover-lift delay-200">
               <Shield className="h-12 w-12 text-green-400 mx-auto mb-4" />
               <h3 className="font-bold text-lg mb-2 text-white">Enterprise Security</h3>
               <p className="text-sm text-gray-400">Bank-grade encryption and access control</p>
             </div>
-            <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl p-6 border border-gray-800 hover:scale-105 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/10">
+            <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl p-6 border border-gray-800 transition-all duration-300 shadow-2xl hover-lift delay-400">
               <Zap className="h-12 w-12 text-purple-400 mx-auto mb-4" />
               <h3 className="font-bold text-lg mb-2 text-white">Lightning Fast</h3>
               <p className="text-sm text-gray-400">Sub-second response times guaranteed</p>
@@ -258,14 +250,14 @@ const Index = () => {
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               required
-              className="h-14 text-lg border-2 border-gray-700 bg-gray-900/50 text-white placeholder:text-gray-400 focus:border-blue-500 transition-all duration-300 backdrop-blur-sm shadow-2xl hover:shadow-blue-500/10 pl-4"
+              className="h-14 text-lg border-2 border-gray-700 bg-gray-900/50 text-white placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/50 transition-all duration-300 backdrop-blur-sm shadow-2xl hover:shadow-blue-500/10 pl-4"
             />
-            <div className="absolute inset-0 rounded-md bg-gradient-to-r from-blue-500/10 to-purple-500/10 -z-10 blur"></div>
+            <div className="absolute inset-0 rounded-md bg-gradient-to-r from-blue-500/10 to-purple-500/10 -z-10 blur opacity-50"></div>
           </div>
           <Button 
             type="submit" 
             size="lg" 
-            className="h-14 px-8 gap-3 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 hover:from-blue-700 hover:via-purple-700 hover:to-indigo-700 transition-all duration-300 shadow-2xl hover:shadow-blue-500/20 hover:scale-105 text-white font-semibold border-0" 
+            className="h-14 px-8 gap-3 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 hover:from-blue-700 hover:via-purple-700 hover:to-indigo-700 transition-all duration-300 shadow-2xl hover:shadow-blue-500/20 hover:scale-105 text-white font-semibold border-0 shimmer-effect" 
             disabled={isLoading}
           >
             {isLoading ? (
@@ -279,7 +271,7 @@ const Index = () => {
         </form>
 
         {!user && !isLoading && (
-          <div className="text-lg text-amber-400 bg-gradient-to-r from-amber-900/20 to-orange-900/20 backdrop-blur-sm border border-amber-700/30 p-8 rounded-2xl mb-12 animate-fade-in delay-600 hover:scale-105 transition-all duration-300 shadow-2xl">
+          <div className="text-lg text-amber-400 bg-gradient-to-r from-amber-900/20 to-orange-900/20 backdrop-blur-sm border border-amber-700/30 p-8 rounded-2xl mb-12 animate-fade-in delay-600 transition-all duration-300 shadow-2xl hover-lift">
             <div className="flex items-center gap-4">
               <Shield className="h-8 w-8 text-amber-400" />
               <div>
@@ -314,7 +306,7 @@ const Index = () => {
                     />
                   </div>
                 ) : (
-                  <Card className="bg-gray-900/50 backdrop-blur-sm border-2 border-gray-800 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300">
+                  <Card className="bg-gray-900/50 backdrop-blur-sm border-2 border-gray-800 hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-300 hover-lift">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2 text-white">
                         <Sparkles className="h-5 w-5 text-green-400" />
