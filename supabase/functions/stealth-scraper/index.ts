@@ -28,9 +28,11 @@ serve(async (req) => {
       const contentType = req.headers.get('content-type');
       if (contentType?.includes('application/json')) {
         const bodyText = await req.text();
+        console.log('📥 Raw request body:', bodyText);
         if (bodyText && bodyText.trim()) {
           try {
             requestData = JSON.parse(bodyText);
+            console.log('📋 Parsed request data:', requestData);
           } catch (parseError) {
             console.error('❌ JSON parse error:', parseError);
             return new Response(JSON.stringify({
@@ -47,19 +49,37 @@ serve(async (req) => {
 
     const { action, url, priority, stealth_level, scraping_intent } = requestData;
     
-    console.log('🔍 Request data:', { action, url, stealth_level });
+    console.log('🔍 Request analysis:', { 
+      action, 
+      url, 
+      stealth_level, 
+      hasAction: !!action,
+      actionType: typeof action
+    });
     
-    // If no action is provided in POST request, return system stats
-    if (!action) {
-      console.log('📊 Fetching system stats (no action in POST)...');
-      const stats = await getSystemStats();
-      return new Response(JSON.stringify(stats), {
+    // Handle scrape action FIRST - this is the main issue!
+    if (action === 'scrape') {
+      console.log(`🚀 EXECUTING SCRAPE ACTION for: ${url} (Level ${stealth_level || 1})`);
+      
+      if (!url) {
+        console.error('❌ No URL provided for scrape action');
+        throw new Error('URL is required for scraping action');
+      }
+      
+      // Determine stealth level (1, 2, 3, or 4)
+      const level = stealth_level === 4 ? 4 : stealth_level === 3 ? 3 : stealth_level === 2 ? 2 : 1;
+      console.log(`🛡️ Using stealth level: ${level}`);
+      
+      const result = await performDirectScrape(url, level, scraping_intent);
+      console.log(`✅ Scrape completed, returning result`);
+      return new Response(JSON.stringify(result), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Handle different actions
+    // Handle enqueue action
     if (action === 'enqueue') {
+      console.log(`📋 EXECUTING ENQUEUE ACTION for: ${url}`);
       const jobId = await enqueueJob(url, priority || 'medium');
       return new Response(JSON.stringify({
         job_id: jobId,
@@ -70,24 +90,18 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
-
-    if (action === 'scrape') {
-      console.log(`🚀 Direct scrape request for: ${url} (Level ${stealth_level || 1})`);
-      
-      if (!url) {
-        throw new Error('URL is required for scraping action');
-      }
-      
-      // Determine stealth level (1, 2, 3, or 4)
-      const level = stealth_level === 4 ? 4 : stealth_level === 3 ? 3 : stealth_level === 2 ? 2 : 1;
-      console.log(`🛡️ Using stealth level: ${level}`);
-      
-      const result = await performDirectScrape(url, level, scraping_intent);
-      return new Response(JSON.stringify(result), {
+    
+    // If no action is provided in POST request, return system stats
+    if (!action) {
+      console.log('📊 No action provided, returning system stats...');
+      const stats = await getSystemStats();
+      return new Response(JSON.stringify(stats), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
+    // Unknown action
+    console.error(`❌ Unknown action received: ${action}`);
     throw new Error(`Unknown action: ${action}`);
 
   } catch (error) {
