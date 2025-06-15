@@ -1,3 +1,4 @@
+
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 import { BrowserFingerprintManager } from './browser-fingerprint-manager.ts';
@@ -12,72 +13,149 @@ serve(async (req) => {
   }
 
   try {
+    console.log(`🌐 ${req.method} request received`);
+
     // Handle GET requests - always return system stats
     if (req.method === 'GET') {
-      console.log('📊 Fetching system stats (GET request)...');
+      console.log('📊 GET request - returning system stats');
       const stats = await getSystemStats();
       return new Response(JSON.stringify(stats), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Handle POST requests - parse request data
-    let requestData: any = {};
-    
+    // Handle POST requests - parse body and execute actions
     if (req.method === 'POST') {
+      console.log('📝 POST request - parsing body...');
+      
+      // Parse request body
+      let requestData: any = {};
       const contentType = req.headers.get('content-type');
-      console.log('📝 Content-Type:', contentType);
+      console.log('📋 Content-Type:', contentType);
       
       if (contentType?.includes('application/json')) {
-        const bodyText = await req.text();
-        console.log('📥 Raw request body:', bodyText);
-        console.log('📏 Body length:', bodyText.length);
-        
-        if (bodyText && bodyText.trim()) {
-          try {
+        try {
+          const bodyText = await req.text();
+          console.log('📥 Request body text:', bodyText);
+          
+          if (bodyText && bodyText.trim()) {
             requestData = JSON.parse(bodyText);
-            console.log('📋 Parsed request data:', JSON.stringify(requestData, null, 2));
-          } catch (parseError) {
-            console.error('❌ JSON parse error:', parseError);
-            return new Response(JSON.stringify({
-              error: 'Invalid JSON in request body',
-              details: parseError.message,
-              timestamp: new Date().toISOString()
-            }), {
-              status: 400,
+            console.log('✅ Parsed request data:', JSON.stringify(requestData, null, 2));
+          } else {
+            console.log('⚠️ Empty request body - returning stats');
+            const stats = await getSystemStats();
+            return new Response(JSON.stringify(stats), {
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             });
           }
-        } else {
-          console.log('⚠️ Empty request body detected');
+        } catch (parseError) {
+          console.error('❌ JSON parse error:', parseError);
+          return new Response(JSON.stringify({
+            error: 'Invalid JSON in request body',
+            details: parseError.message,
+            timestamp: new Date().toISOString()
+          }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
         }
       } else {
-        console.log('⚠️ No JSON content-type detected');
+        console.log('⚠️ No JSON content-type - returning stats');
+        const stats = await getSystemStats();
+        return new Response(JSON.stringify(stats), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
-    }
 
-    // Extract and log action details
-    const { action, url, priority, stealth_level, scraping_intent } = requestData;
-    
-    console.log('🔍 Detailed request analysis:', { 
-      action, 
-      url, 
-      stealth_level,
-      priority,
-      scraping_intent,
-      hasAction: !!action,
-      actionType: typeof action,
-      requestDataKeys: Object.keys(requestData)
-    });
-    
-    // PRIORITY 1: Handle scrape action FIRST
-    if (action === 'scrape') {
-      console.log(`🚀 EXECUTING SCRAPE ACTION for: ${url} (Level ${stealth_level || 1})`);
+      // Extract action and parameters
+      const { action, url, priority, stealth_level, scraping_intent } = requestData;
       
-      if (!url) {
-        console.error('❌ No URL provided for scrape action');
+      console.log('🔍 Action analysis:', { 
+        action, 
+        url, 
+        stealth_level,
+        priority,
+        scraping_intent,
+        hasAction: !!action,
+        actionType: typeof action
+      });
+
+      // PRIORITY 1: Handle scrape action
+      if (action === 'scrape') {
+        console.log(`🚀 SCRAPE ACTION DETECTED - URL: ${url}`);
+        
+        if (!url) {
+          console.error('❌ No URL provided for scrape action');
+          return new Response(JSON.stringify({
+            error: 'URL is required for scraping action',
+            timestamp: new Date().toISOString()
+          }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+        
+        // Determine stealth level
+        const level = stealth_level === 4 ? 4 : stealth_level === 3 ? 3 : stealth_level === 2 ? 2 : 1;
+        console.log(`🛡️ Using stealth level: ${level}`);
+        
+        try {
+          console.log('🎯 Calling performDirectScrape...');
+          const result = await performDirectScrape(url, level, scraping_intent);
+          console.log('✅ Scrape completed successfully');
+          
+          // Normalize response format for frontend
+          const normalizedResponse = {
+            data: result.structured_data || [],
+            metadata: {
+              ...result.metadata,
+              original_url: result.url,
+              stealth_level: level,
+              success: true
+            },
+            html: result.html || '',
+            url: result.url
+          };
+          
+          console.log('📤 Returning normalized scrape response');
+          return new Response(JSON.stringify(normalizedResponse), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        } catch (scrapeError) {
+          console.error(`❌ Scrape execution failed:`, scrapeError);
+          return new Response(JSON.stringify({
+            error: `Scraping failed: ${scrapeError.message}`,
+            url: url,
+            stealth_level: level,
+            timestamp: new Date().toISOString()
+          }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+      }
+
+      // Handle enqueue action
+      if (action === 'enqueue') {
+        console.log(`📋 ENQUEUE ACTION for: ${url}`);
+        const jobId = await enqueueJob(url, priority || 'medium');
         return new Response(JSON.stringify({
-          error: 'URL is required for scraping action',
+          job_id: jobId,
+          url: url,
+          priority: priority || 'medium',
+          status: 'queued',
+          timestamp: new Date().toISOString()
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      
+      // Handle unknown actions
+      if (action && action !== 'scrape' && action !== 'enqueue') {
+        console.error(`❌ Unknown action received: ${action}`);
+        return new Response(JSON.stringify({
+          error: `Unknown action: ${action}`,
+          supported_actions: ['scrape', 'enqueue'],
           timestamp: new Date().toISOString()
         }), {
           status: 400,
@@ -85,77 +163,21 @@ serve(async (req) => {
         });
       }
       
-      // Determine stealth level (1, 2, 3, or 4)
-      const level = stealth_level === 4 ? 4 : stealth_level === 3 ? 3 : stealth_level === 2 ? 2 : 1;
-      console.log(`🛡️ Using stealth level: ${level}`);
-      
-      try {
-        const result = await performDirectScrape(url, level, scraping_intent);
-        console.log(`✅ Scrape completed successfully`);
-        
-        // Normalize response format for frontend
-        const normalizedResponse = {
-          data: result.structured_data || [],
-          metadata: {
-            ...result.metadata,
-            original_url: result.url,
-            stealth_level: level,
-            success: true
-          },
-          html: result.html || '',
-          url: result.url
-        };
-        
-        console.log('📤 Returning normalized scrape response');
-        return new Response(JSON.stringify(normalizedResponse), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      } catch (scrapeError) {
-        console.error(`❌ Scrape execution failed:`, scrapeError);
-        return new Response(JSON.stringify({
-          error: `Scraping failed: ${scrapeError.message}`,
-          url: url,
-          stealth_level: level,
-          timestamp: new Date().toISOString()
-        }), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
+      // If no action is provided in POST, return system stats
+      console.log('📊 No action provided in POST - returning system stats');
+      const stats = await getSystemStats();
+      return new Response(JSON.stringify(stats), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    // Handle enqueue action
-    if (action === 'enqueue') {
-      console.log(`📋 EXECUTING ENQUEUE ACTION for: ${url}`);
-      const jobId = await enqueueJob(url, priority || 'medium');
-      return new Response(JSON.stringify({
-        job_id: jobId,
-        url: url,
-        priority: priority || 'medium',
-        status: 'queued',
-        timestamp: new Date().toISOString()
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    
-    // Handle unknown actions
-    if (action && action !== 'scrape' && action !== 'enqueue') {
-      console.error(`❌ Unknown action received: ${action}`);
-      return new Response(JSON.stringify({
-        error: `Unknown action: ${action}`,
-        supported_actions: ['scrape', 'enqueue'],
-        timestamp: new Date().toISOString()
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-    
-    // If no action is provided, return system stats
-    console.log('📊 No action provided, returning system stats...');
-    const stats = await getSystemStats();
-    return new Response(JSON.stringify(stats), {
+    // Handle other HTTP methods
+    console.log(`❌ Unsupported method: ${req.method}`);
+    return new Response(JSON.stringify({
+      error: `Method ${req.method} not allowed`,
+      timestamp: new Date().toISOString()
+    }), {
+      status: 405,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
