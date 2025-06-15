@@ -93,16 +93,107 @@ function processQuery(data: any[], queryParams: any): any {
   };
 }
 
-// Simple data serving (mock for now)
-async function serveData(apiId: string, queryParams: any): Promise<any> {
-  // Mock data for now - in real implementation this would fetch from the actual API
-  const mockData = [
-    { id: 1, title: "Sample Product", price: "$29.99", category: "Electronics" },
-    { id: 2, title: "Another Item", price: "$45.00", category: "Home" },
-    { id: 3, title: "Third Product", price: "$12.99", category: "Books" }
-  ];
+// Fetch actual scraped data from content_snapshots table
+async function getScrapedData(supabase: any, apiId: string): Promise<any[]> {
+  console.log(`🔍 Fetching scraped data for API ID: ${apiId}`);
+  
+  try {
+    // Get the most recent content snapshot for this API
+    const { data: snapshots, error } = await supabase
+      .from('content_snapshots')
+      .select('snapshot_data')
+      .eq('api_id', apiId)
+      .order('created_at', { ascending: false })
+      .limit(1);
 
-  return mockData;
+    if (error) {
+      console.error('Error fetching content snapshots:', error);
+      return [];
+    }
+
+    if (!snapshots || snapshots.length === 0) {
+      console.log('No content snapshots found for API ID:', apiId);
+      return [];
+    }
+
+    const snapshotData = snapshots[0].snapshot_data;
+    console.log(`📦 Found snapshot data:`, snapshotData);
+
+    // Extract data from snapshot - it could be in different formats
+    if (Array.isArray(snapshotData)) {
+      return snapshotData;
+    } else if (snapshotData && Array.isArray(snapshotData.data)) {
+      return snapshotData.data;
+    } else if (snapshotData && snapshotData.structured_data) {
+      if (Array.isArray(snapshotData.structured_data)) {
+        return snapshotData.structured_data;
+      } else if (snapshotData.structured_data.slideshow && snapshotData.structured_data.slideshow.slides) {
+        return snapshotData.structured_data.slideshow.slides;
+      }
+    }
+
+    // If it's an object, convert to array format
+    if (snapshotData && typeof snapshotData === 'object') {
+      return [snapshotData];
+    }
+
+    console.log('Could not extract array data from snapshot, using fallback');
+    return [];
+
+  } catch (error) {
+    console.error('Error processing scraped data:', error);
+    return [];
+  }
+}
+
+// Store scraped data when API is first created
+async function storeScrapedData(supabase: any, apiId: string, sourceUrl: string): Promise<any[]> {
+  console.log(`🚀 Triggering fresh scrape for API ${apiId} from ${sourceUrl}`);
+  
+  try {
+    // Call the stealth-scraper to get fresh data
+    const { data: scrapeResult, error: scrapeError } = await supabase.functions.invoke('stealth-scraper', {
+      body: {
+        action: 'scrape',
+        url: sourceUrl,
+        stealth_level: 2,
+        scraping_intent: 'api_generation'
+      }
+    });
+
+    if (scrapeError) {
+      console.error('Scraping failed:', scrapeError);
+      return [];
+    }
+
+    if (!scrapeResult || !scrapeResult.data) {
+      console.log('No data returned from scraper');
+      return [];
+    }
+
+    console.log(`✅ Scraped data successfully:`, scrapeResult.data);
+
+    // Store the scraped data in content_snapshots
+    const { error: insertError } = await supabase
+      .from('content_snapshots')
+      .insert({
+        api_id: apiId,
+        snapshot_data: scrapeResult.data,
+        content_hash: `hash_${Date.now()}`
+      });
+
+    if (insertError) {
+      console.error('Error storing snapshot:', insertError);
+    } else {
+      console.log(`📦 Stored snapshot for API ${apiId}`);
+    }
+
+    return Array.isArray(scrapeResult.data) ? scrapeResult.data : [scrapeResult.data];
+
+  } catch (error) {
+    console.error('Error in storeScrapedData:', error);
+    return [];
+  }
 }
 
 serve(async (req) => {
@@ -183,8 +274,14 @@ serve(async (req) => {
 
     console.log(`🚀 Processing request for API ${apiId} with query params:`, queryParams);
 
-    // Serve data (simplified for now)
-    const rawData = await serveData(apiId, queryParams);
+    // Try to get existing scraped data first
+    let rawData = await getScrapedData(supabase, apiId);
+    
+    // If no data found, trigger a fresh scrape
+    if (!rawData || rawData.length === 0) {
+      console.log(`📡 No cached data found, triggering fresh scrape for ${apiData.source_url}`);
+      rawData = await storeScrapedData(supabase, apiId, apiData.source_url);
+    }
 
     // Apply Data Quality Assessment
     const qualityReport = assessDataQuality(rawData);
@@ -193,7 +290,7 @@ serve(async (req) => {
     // Apply Query Processing
     const queryResult = processQuery(rawData, queryParams);
 
-    console.log(`✅ Processed ${queryResult.data.length} items`);
+    console.log(`✅ Processed ${queryResult.data.length} items from ${rawData.length} total items`);
 
     // Enhanced response with quality metrics and processing info
     const enhancedResponse = {
