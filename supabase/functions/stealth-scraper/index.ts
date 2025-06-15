@@ -60,7 +60,7 @@ serve(async (req) => {
     console.log(`🎯 [${operationId}] Military-Grade Scraping Operation Initiated`);
     console.log(`📡 [${operationId}] Request Method: ${req.method}`);
 
-    // Handle GET requests for operational status
+    // Handle GET requests for operational status ("heartbeat")
     if (req.method === 'GET') {
       console.log(`📊 [${operationId}] Status request - returning operational intelligence`);
       const operationalStatus = await getOperationalIntelligence();
@@ -69,11 +69,12 @@ serve(async (req) => {
       });
     }
 
-    // Handle POST requests for scrape/enqueue
+    // POST requests
     if (req.method === 'POST') {
       let bodyText: string | undefined;
       try {
         bodyText = await req.text();
+        console.log(`📩 [${operationId}] Received POST body: '${bodyText.slice(0, 500)}'`);
       } catch (parseError) {
         return new Response(JSON.stringify({
           error: 'Failed to decode request payload',
@@ -86,19 +87,24 @@ serve(async (req) => {
         });
       }
 
-      // If there is no body, return system status
-      if (!bodyText || bodyText.trim() === '') {
+      // If body is empty or only whitespace/empty JSON: return system status
+      if (!bodyText || !bodyText.trim() || bodyText.trim() === '{}' || bodyText.trim() === 'null') {
+        console.log(`📋 [${operationId}] POST request without valid body, returning operational status`);
         const operationalStatus = await getOperationalIntelligence();
         return new Response(JSON.stringify(operationalStatus), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
-      // Parse and validate input for action
+      // Try to parse JSON
       let requestData: MilitaryGradeScrapeRequest;
       try {
         requestData = JSON.parse(bodyText);
+        if (!requestData || typeof requestData !== 'object') {
+          throw new Error('Parsed body is not a valid object');
+        }
       } catch (parseError) {
+        console.error(`❗ [${operationId}] Invalid JSON or type:`, parseError);
         return new Response(JSON.stringify({
           error: 'Invalid operation payload (JSON parse failed)',
           operation_id: operationId,
@@ -110,9 +116,23 @@ serve(async (req) => {
         });
       }
 
-      // Main adjustment: Only return status for GET or blank POST, never when action=scrape
+      // Strict: if no action, reject
       const { action, url, extraction_profile, anti_detection_mode } = requestData;
+      if (!action) {
+        return new Response(JSON.stringify({
+          error: "Missing 'action' in scrape request.",
+          operation_id: operationId,
+          details: requestData,
+          timestamp: new Date().toISOString()
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Main: If action === 'scrape'
       if (action === 'scrape') {
+        // Validate url
         if (!url || !isValidOperationalTarget(url)) {
           return new Response(JSON.stringify({
             error: 'Invalid operational target URL',
@@ -125,8 +145,9 @@ serve(async (req) => {
           });
         }
 
-        // Try fast static scrape
+        // Step 1: Try fast static scrape
         try {
+          console.log(`[${operationId}] Trying fast static HTML scrape...`);
           const fastResult = await fastStaticHtmlScrape(url, extraction_profile || 'comprehensive', operationId);
           if (fastResult && fastResult.success && fastResult.completeness > 0.9) {
             const operationDuration = Date.now() - startTime;
@@ -172,8 +193,9 @@ serve(async (req) => {
           console.warn(`[${operationId}] Fast static HTML scrape failed, falling back to heavy engine:`, err);
         }
 
-        // If fast scrape does not yield, fallback to full engine.
+        // Step 2: Attempt full military-grade scrape
         try {
+          console.log(`[${operationId}] Entering full military-grade scrape pipeline...`);
           // Do military-grade scrape:
           console.log(`⚔️ [${operationId}] Executing Military-Grade Operation`);
           console.log(`🎯 [${operationId}] Target: ${url}`);
@@ -254,7 +276,9 @@ serve(async (req) => {
             console.error(`❌ [${operationId}] Military operation failed:`, error);
             throw new Error(`Military-grade extraction failed: ${error.message}`);
           }
+
         } catch (operationError: any) {
+          console.error(`❌ [${operationId}] Military-grade pipeline error:`, operationError);
           return new Response(JSON.stringify({
             error: `Military-grade operation failed: ${operationError.message}`,
             operation_id: operationId,
@@ -266,7 +290,8 @@ serve(async (req) => {
           });
         }
 
-        // If both fail, return explicit error, NOT status object.
+        // If both scraping attempts fail, return a real error (not status)
+        console.error(`[${operationId}] Both fast and full scrape failed for: ${url}`);
         return new Response(JSON.stringify({
           error: "Military-grade operation could not extract data from the target. Both static and headless approaches failed.",
           operation_id: operationId,
@@ -278,7 +303,7 @@ serve(async (req) => {
         });
       }
 
-      // Handle enqueue action for batch operations
+      // Batch "enqueue"
       if (action === 'enqueue') {
         if (!url || !isValidOperationalTarget(url)) {
           return new Response(JSON.stringify({
@@ -304,7 +329,7 @@ serve(async (req) => {
         });
       }
 
-      // Unknown/invalid action handling
+      // Unknown/invalid action
       return new Response(JSON.stringify({
         error: `Invalid military operation '${action}'`,
         supported_operations: ['scrape', 'enqueue'],
@@ -317,7 +342,6 @@ serve(async (req) => {
       });
     }
 
-    // Method not allowed
     return new Response(JSON.stringify({
       error: `Method ${req.method} not supported`,
       allowed_methods: ['GET', 'POST'],
@@ -329,6 +353,7 @@ serve(async (req) => {
     });
 
   } catch (error: any) {
+    console.error(`[${operationId}] Top-level handler exception:`, error);
     return new Response(JSON.stringify({
       error: `Critical military operation failure: ${error.message}`,
       operation_id: operationId,
