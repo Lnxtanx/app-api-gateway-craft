@@ -41,6 +41,7 @@ const Index = () => {
   const [availableFields, setAvailableFields] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState('response');
   const [showAdvancedLogger, setShowAdvancedLogger] = useState(false);
+  const [intelligenceLevel, setIntelligenceLevel] = useState(5); // Default to Level 5
 
   const { user } = useAuth();
   const { toast } = useToast();
@@ -161,7 +162,7 @@ const Index = () => {
       });
     } finally {
       setIsLoading(false);
-      setTimeout(() => setShowAdvancedLogger(false), 2000);
+      setTimeout(() => setShowAdvancedLogger(false), 3000); // Show logger a bit longer for military effect
     }
   };
 
@@ -237,7 +238,7 @@ const Index = () => {
         </h2>
         <p className="max-w-2xl text-lg md:text-xl text-muted-foreground mb-8">
           Enter a URL, and we'll give you a structured API to access its content. 
-          Now with Level 4 Military-Grade AI enhancement, real-time sync, and intelligent data processing.
+          Now with Level 5 Military-Grade AI enhancement, quantum stealth protocols, and zero-footprint intelligence.
         </p>
 
         {/* Enhanced Status Dashboard */}
@@ -279,38 +280,44 @@ const Index = () => {
               <div>
                 <p className="font-semibold">Enhanced features available with account</p>
                 <p className="text-sm mt-1">
-                  Please <Link to="/auth" className="font-bold underline hover:text-amber-700 transition-colors">log in</Link> to save and manage your generated APIs with Level 4 Military-Grade features.
+                  Please <Link to="/auth" className="font-bold underline hover:text-amber-700 transition-colors">log in</Link> to save and manage your generated APIs with Level 5 Military-Grade features.
                 </p>
               </div>
             </div>
           </div>
         )}
 
-        {/* Advanced Logger */}
+        {/* Enhanced Military-Grade Logger */}
         {showAdvancedLogger && (
-          <div className="w-full max-w-4xl mb-8 animate-in fade-in-50 duration-500">
+          <div className="w-full max-w-6xl mb-8 animate-in fade-in-50 duration-500">
             <AdvancedLogger 
               isActive={isLoading} 
-              url={url} 
+              url={url}
+              intelligenceLevel={intelligenceLevel}
               onComplete={() => {
-                console.log('API generation logging completed');
+                console.log('Military-grade intelligence operation completed');
               }} 
             />
           </div>
         )}
 
         {isLoading && !showAdvancedLogger && (
-           <div className="flex flex-col items-center gap-6 p-8 bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl border border-blue-200">
-            <LoaderCircle className="h-16 w-16 animate-spin text-primary" />
-            <div className="text-center">
-              <h3 className="text-xl font-semibold mb-2">Crafting your API with Level 4 Military-Grade AI</h3>
-              <p className="text-muted-foreground mb-4">This might take a moment as we apply advanced intelligence...</p>
+           <div className="flex flex-col items-center gap-6 p-8 bg-gradient-to-br from-purple-50 via-blue-50 to-slate-50 border-2 border-purple-200 rounded-2xl animate-in fade-in-50">
+            <div className="relative">
+              <LoaderCircle className="h-16 w-16 animate-spin text-primary" />
+              <Crown className="h-6 w-6 text-amber-500 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 animate-pulse" />
             </div>
-            <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground max-w-md">
-              <p className="flex items-center gap-2"><Brain className="h-4 w-4 text-purple-500" /> AI analyzing content patterns</p>
-              <p className="flex items-center gap-2"><Zap className="h-4 w-4 text-blue-500" /> Real-time synchronization</p>
-              <p className="flex items-center gap-2"><Database className="h-4 w-4 text-green-500" /> Quality enhancement</p>
-              <p className="flex items-center gap-2"><Search className="h-4 w-4 text-orange-500" /> Smart query generation</p>
+            <div className="text-center">
+              <h3 className="text-xl font-semibold mb-2 bg-gradient-to-r from-primary via-purple-500 to-blue-500 bg-clip-text text-transparent">
+                Deploying Level {intelligenceLevel} Military-Grade Intelligence
+              </h3>
+              <p className="text-muted-foreground mb-4">Quantum protocols initializing for maximum stealth...</p>
+            </div>
+            <div className="grid grid-cols-2 gap-4 text-sm text-muted-foreground max-w-lg">
+              <p className="flex items-center gap-2"><Brain className="h-4 w-4 text-purple-500" /> Neural behavior simulation</p>
+              <p className="flex items-center gap-2"><Zap className="h-4 w-4 text-blue-500" /> Quantum fingerprint masking</p>
+              <p className="flex items-center gap-2"><Database className="h-4 w-4 text-green-500" /> Multi-vector extraction</p>
+              <p className="flex items-center gap-2"><Search className="h-4 w-4 text-orange-500" /> Zero-footprint intelligence</p>
             </div>
            </div>
         )}
@@ -410,7 +417,7 @@ const Index = () => {
             <span className="mx-2">•</span>
             <span className="flex items-center gap-1">
               <Crown className="h-3 w-3 text-amber-500" />
-              Level 4 Military-Grade AI
+              Level 5 Military-Grade AI
             </span>
           </div>
         </div>
