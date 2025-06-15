@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Link } from 'react-router-dom';
 import ApiResponseDisplay from '@/components/ApiResponseDisplay';
 import ApiQueryInterface from '@/components/ApiQueryInterface';
+import Header from '@/components/Header'; // Added Header import
 
 interface QueryParams {
   search?: string;
@@ -189,6 +189,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
+      <Header /> {/* Added Header to the top */}
       <header className="py-8">
         <div className="container mx-auto">
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter mb-2 text-primary">
