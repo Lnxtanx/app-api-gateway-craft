@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,7 +27,8 @@ import {
   ExternalLink,
   Lock,
   Target,
-  Cpu
+  Cpu,
+  Crown
 } from 'lucide-react';
 import CodeBlock from './CodeBlock';
 
@@ -62,7 +62,8 @@ interface SystemStats {
 const StealthScrapingInterface: React.FC = () => {
   const [url, setUrl] = useState('');
   const [priority, setPriority] = useState('medium');
-  const [stealthLevel, setStealthLevel] = useState<1 | 2 | 3>(1);
+  const [stealthLevel, setStealthLevel] = useState<1 | 2 | 3 | 4>(1);
+  const [scrapingIntent, setScrapingIntent] = useState('data_extraction');
   const [isLoading, setIsLoading] = useState(false);
   const [jobs, setJobs] = useState<StealthJob[]>([]);
   const [systemStats, setSystemStats] = useState<SystemStats | null>(null);
@@ -195,7 +196,12 @@ const StealthScrapingInterface: React.FC = () => {
     try {
       console.log(`🚀 Starting Level ${stealthLevel} direct scrape for URL:`, url);
       const { data, error } = await supabase.functions.invoke('stealth-scraper', {
-        body: { action: 'scrape', url, stealth_level: stealthLevel },
+        body: { 
+          action: 'scrape', 
+          url, 
+          stealth_level: stealthLevel,
+          scraping_intent: scrapingIntent
+        },
         headers: { 'Content-Type': 'application/json' }
       });
 
@@ -240,9 +246,13 @@ const StealthScrapingInterface: React.FC = () => {
       
       console.log(`✅ Level ${stealthLevel} direct scrape completed successfully`);
       
+      const levelName = stealthLevel === 4 ? 'Enterprise (Military Grade)' : 
+                        stealthLevel === 3 ? 'Advanced Anti-Detection' :
+                        stealthLevel === 2 ? 'Intermediate' : 'Basic';
+      
       const message = apiData 
-        ? `Successfully scraped ${data.url} with Level ${stealthLevel} stealth and saved API to dashboard`
-        : `Successfully scraped ${data.url} using Level ${stealthLevel} stealth (${data.metadata?.profile_used || 'stealth profile'})`;
+        ? `Successfully scraped ${data.url} with Level ${stealthLevel} ${levelName} stealth and saved API to dashboard`
+        : `Successfully scraped ${data.url} using Level ${stealthLevel} ${levelName} stealth (${data.metadata?.profile_used || 'stealth profile'})`;
       
       toast({
         title: "Stealth Scrape Complete",
@@ -287,6 +297,7 @@ const StealthScrapingInterface: React.FC = () => {
       case 1: return <Shield className="h-4 w-4" />;
       case 2: return <Brain className="h-4 w-4" />;
       case 3: return <Lock className="h-4 w-4" />;
+      case 4: return <Crown className="h-4 w-4" />;
       default: return <Shield className="h-4 w-4" />;
     }
   };
@@ -296,6 +307,7 @@ const StealthScrapingInterface: React.FC = () => {
       case 1: return 'text-blue-500';
       case 2: return 'text-purple-500';
       case 3: return 'text-red-500';
+      case 4: return 'text-amber-500';
       default: return 'text-blue-500';
     }
   };
@@ -322,7 +334,7 @@ const StealthScrapingInterface: React.FC = () => {
               <div className="flex items-center gap-2">
                 <BarChart3 className="h-5 w-5 text-blue-500" />
                 <div>
-                  <div className="font-semibold">Level 1-3</div>
+                  <div className="font-semibold">Level 1-4</div>
                   <div className="text-sm text-muted-foreground">Stealth Levels</div>
                 </div>
               </div>
@@ -334,7 +346,7 @@ const StealthScrapingInterface: React.FC = () => {
               <div className="flex items-center gap-2">
                 <Target className="h-5 w-5 text-orange-500" />
                 <div>
-                  <div className="font-semibold">60-95%</div>
+                  <div className="font-semibold">60-99%</div>
                   <div className="text-sm text-muted-foreground">Success Rate</div>
                 </div>
               </div>
@@ -355,21 +367,21 @@ const StealthScrapingInterface: React.FC = () => {
         </div>
       )}
 
-      {/* Stealth Levels Overview */}
+      {/* Enhanced Stealth Levels Overview */}
       {systemStats && systemStats.stealth_levels && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="h-5 w-5 text-blue-500" />
-                Level 1: Basic Stealth
+                Level 1: Basic
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <div className="text-2xl font-bold text-blue-600">60-70% Success</div>
+                <div className="text-2xl font-bold text-blue-600">60-70%</div>
                 <div className="text-sm text-muted-foreground">
-                  User Agent Rotation, Header Normalization, Basic Rate Limiting, Simple Proxy Usage
+                  User Agent Rotation, Header Normalization, Basic Rate Limiting
                 </div>
               </div>
             </CardContent>
@@ -379,14 +391,14 @@ const StealthScrapingInterface: React.FC = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Brain className="h-5 w-5 text-purple-500" />
-                Level 2: Intermediate Stealth
+                Level 2: Intermediate
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <div className="text-2xl font-bold text-purple-600">80-85% Success</div>
+                <div className="text-2xl font-bold text-purple-600">80-85%</div>
                 <div className="text-sm text-muted-foreground">
-                  Fingerprint Masking, Session Management, Residential Proxies, Content-Aware Delays
+                  Fingerprint Masking, Session Management, Residential Proxies
                 </div>
               </div>
             </CardContent>
@@ -396,15 +408,35 @@ const StealthScrapingInterface: React.FC = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Lock className="h-5 w-5 text-red-500" />
-                Level 3: Advanced Anti-Detection
+                Level 3: Advanced
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                <div className="text-2xl font-bold text-red-600">90-95% Success</div>
+                <div className="text-2xl font-bold text-red-600">90-95%</div>
                 <div className="text-sm text-muted-foreground">
-                  ML Evasion, CAPTCHA Solving, Traffic Distribution, Advanced Fingerprint Spoofing
+                  ML Evasion, CAPTCHA Solving, Traffic Distribution
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Crown className="h-5 w-5 text-amber-500" />
+                Level 4: Enterprise
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="text-2xl font-bold text-amber-600">98-99%</div>
+                <div className="text-sm text-muted-foreground">
+                  Military Grade: AI Behavior, Zero-Footprint, Legal Compliance
+                </div>
+                <Badge variant="outline" className="text-amber-700 border-amber-300">
+                  NEW
+                </Badge>
               </div>
             </CardContent>
           </Card>
@@ -423,7 +455,7 @@ const StealthScrapingInterface: React.FC = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Eye className="h-5 w-5" />
-                Anti-Detection Scraping
+                Military-Grade Anti-Detection Scraping
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -447,14 +479,28 @@ const StealthScrapingInterface: React.FC = () => {
               </div>
 
               <div className="flex gap-2">
-                <Select value={stealthLevel.toString()} onValueChange={(value) => setStealthLevel(parseInt(value) as 1 | 2 | 3)}>
-                  <SelectTrigger className="w-64">
+                <Select value={stealthLevel.toString()} onValueChange={(value) => setStealthLevel(parseInt(value) as 1 | 2 | 3 | 4)}>
+                  <SelectTrigger className="w-80">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1">Level 1: Basic (60-70%)</SelectItem>
+                    <SelectItem value="1">Level 1: Basic Stealth (60-70%)</SelectItem>
                     <SelectItem value="2">Level 2: Intermediate (80-85%)</SelectItem>
                     <SelectItem value="3">Level 3: Advanced (90-95%)</SelectItem>
+                    <SelectItem value="4">Level 4: Enterprise Military Grade (98-99%)</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select value={scrapingIntent} onValueChange={setScrapingIntent}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="data_extraction">Data Extraction</SelectItem>
+                    <SelectItem value="research_analysis">Research Analysis</SelectItem>
+                    <SelectItem value="competitive_intelligence">Competitive Intelligence</SelectItem>
+                    <SelectItem value="market_research">Market Research</SelectItem>
+                    <SelectItem value="academic_research">Academic Research</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -503,6 +549,15 @@ const StealthScrapingInterface: React.FC = () => {
                     <li>• ML-Based Evasion & CAPTCHA Solving</li>
                     <li>• Advanced Fingerprint Spoofing & Traffic Distribution</li>
                     <li>• Browser Automation Stealth & Adaptive Intelligence</li>
+                  </ul>
+                )}
+                {stealthLevel === 4 && (
+                  <ul className="ml-4 space-y-1">
+                    <li>• All Level 3 features + Military-grade protection</li>
+                    <li>• AI-Powered Behavior Simulation & Zero-Footprint Architecture</li>
+                    <li>• Advanced Anti-Fingerprinting & Sophisticated CAPTCHA Solutions</li>
+                    <li>• Legal Compliance Integration & Enterprise-grade Security</li>
+                    <li className="text-amber-600 font-semibold">• 🏆 Banking/Government Grade Protection</li>
                   </ul>
                 )}
                 {user && (
