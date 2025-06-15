@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 import { BrowserFingerprintManager } from './browser-fingerprint-manager.ts';
@@ -23,27 +22,32 @@ serve(async (req) => {
     }
 
     // Handle POST requests
-    let requestData = {};
+    let requestData: any = {};
     
-    if (req.method === 'POST' && req.headers.get('content-type')?.includes('application/json')) {
-      const bodyText = await req.text();
-      if (bodyText && bodyText.trim()) {
-        try {
-          requestData = JSON.parse(bodyText);
-        } catch (parseError) {
-          console.error('❌ JSON parse error:', parseError);
-          return new Response(JSON.stringify({
-            error: 'Invalid JSON in request body',
-            timestamp: new Date().toISOString()
-          }), {
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
+    if (req.method === 'POST') {
+      const contentType = req.headers.get('content-type');
+      if (contentType?.includes('application/json')) {
+        const bodyText = await req.text();
+        if (bodyText && bodyText.trim()) {
+          try {
+            requestData = JSON.parse(bodyText);
+          } catch (parseError) {
+            console.error('❌ JSON parse error:', parseError);
+            return new Response(JSON.stringify({
+              error: 'Invalid JSON in request body',
+              timestamp: new Date().toISOString()
+            }), {
+              status: 400,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            });
+          }
         }
       }
     }
 
     const { action, url, priority, stealth_level, scraping_intent } = requestData;
+    
+    console.log('🔍 Request data:', { action, url, stealth_level });
     
     // If no action is provided in POST request, return system stats
     if (!action) {
@@ -55,33 +59,36 @@ serve(async (req) => {
     }
 
     // Handle different actions
-    switch (action) {
-      case 'enqueue':
-        const jobId = await enqueueJob(url, priority || 'medium');
-        return new Response(JSON.stringify({
-          job_id: jobId,
-          url: url,
-          priority: priority || 'medium',
-          status: 'queued'
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-
-      case 'scrape':
-        console.log(`🚀 Direct scrape request for: ${url} (Level ${stealth_level || 1})`);
-        
-        // Determine stealth level (1, 2, 3, or 4)
-        const level = stealth_level === 4 ? 4 : stealth_level === 3 ? 3 : stealth_level === 2 ? 2 : 1;
-        console.log(`🛡️ Using stealth level: ${level}`);
-        
-        const result = await performDirectScrape(url, level, scraping_intent);
-        return new Response(JSON.stringify(result), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-
-      default:
-        throw new Error(`Unknown action: ${action}`);
+    if (action === 'enqueue') {
+      const jobId = await enqueueJob(url, priority || 'medium');
+      return new Response(JSON.stringify({
+        job_id: jobId,
+        url: url,
+        priority: priority || 'medium',
+        status: 'queued'
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
+
+    if (action === 'scrape') {
+      console.log(`🚀 Direct scrape request for: ${url} (Level ${stealth_level || 1})`);
+      
+      if (!url) {
+        throw new Error('URL is required for scraping action');
+      }
+      
+      // Determine stealth level (1, 2, 3, or 4)
+      const level = stealth_level === 4 ? 4 : stealth_level === 3 ? 3 : stealth_level === 2 ? 2 : 1;
+      console.log(`🛡️ Using stealth level: ${level}`);
+      
+      const result = await performDirectScrape(url, level, scraping_intent);
+      return new Response(JSON.stringify(result), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    throw new Error(`Unknown action: ${action}`);
 
   } catch (error) {
     console.error('❌ Stealth scraper error:', error);
