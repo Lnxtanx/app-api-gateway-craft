@@ -38,6 +38,7 @@ const Index = () => {
   } | null>(null);
   const [queryResult, setQueryResult] = useState<any>(null);
   const [availableFields, setAvailableFields] = useState<string[]>([]);
+  const [activeTab, setActiveTab] = useState('response');
 
   const { user } = useAuth();
   const { toast } = useToast();
@@ -68,6 +69,7 @@ const Index = () => {
     setApiResult(null);
     setQueryResult(null);
     setShowIntelligentAnalysis(false);
+    setActiveTab('response');
 
     try {
       const { data: generatedApiData, error } = await supabase.functions.invoke('generate-api', {
@@ -103,6 +105,9 @@ const Index = () => {
       if (scrapedData.data && scrapedData.data.length > 0) {
         const fields = Object.keys(scrapedData.data[0]);
         setAvailableFields(fields);
+      } else {
+        // Fallback fields if no data is available
+        setAvailableFields(['title', 'content', 'price', 'category', 'author', 'date']);
       }
 
       // Extract HTML content for intelligent analysis
@@ -184,6 +189,9 @@ const Index = () => {
 
       const result = await response.json();
       setQueryResult(result);
+
+      // Switch to response tab to show results
+      setActiveTab('response');
 
       toast({
         title: "Query Executed",
@@ -280,7 +288,7 @@ const Index = () => {
 
         {apiResult && (
           <div className="w-full max-w-6xl text-left animate-in fade-in-50 duration-500">
-            <Tabs defaultValue="response" className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="response">API Response</TabsTrigger>
                 <TabsTrigger value="query">Query Interface</TabsTrigger>
@@ -300,6 +308,14 @@ const Index = () => {
                       <CardTitle>API Generated</CardTitle>
                       <CardDescription>Your API is ready! Use the Query Interface to test it.</CardDescription>
                     </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground">
+                        Endpoint: <code className="bg-muted px-2 py-1 rounded">{apiResult.endpoint}</code>
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        API Key: <code className="bg-muted px-2 py-1 rounded">{apiResult.apiKey}</code>
+                      </p>
+                    </CardContent>
                   </Card>
                 )}
               </TabsContent>
@@ -315,8 +331,22 @@ const Index = () => {
               </TabsContent>
 
               <TabsContent value="features" className="space-y-6">
-                {apiResult.responseData && (
+                {apiResult.responseData ? (
                   <AdvancedApiFeatures apiData={apiResult.responseData} />
+                ) : (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Advanced Features</CardTitle>
+                      <CardDescription>
+                        Advanced API features will be available once data is loaded.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground">
+                        Execute a query first to see advanced features and analytics.
+                      </p>
+                    </CardContent>
+                  </Card>
                 )}
               </TabsContent>
             </Tabs>
