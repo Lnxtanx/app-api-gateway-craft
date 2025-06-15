@@ -49,6 +49,183 @@ interface MilitaryGradeResponse {
   debug_intelligence?: any;
 }
 
+function logAndRespondError(operationId: string, message: string, status = 400, details: any = undefined) {
+  const response = {
+    error: message,
+    operation_id: operationId,
+    details,
+    timestamp: new Date().toISOString()
+  };
+  console.error(`❌ [${operationId}] ${message}`, details);
+  return new Response(JSON.stringify(response), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+  });
+}
+
+async function parseRequestBody(req: Request, operationId: string): Promise<any> {
+  let bodyText: string | undefined;
+  try {
+    bodyText = await req.text();
+    console.log(`📩 [${operationId}] Received POST body: '${String(bodyText).slice(0, 500)}'`);
+  } catch (parseError) {
+    throw { err: 'Failed to decode request payload', details: parseError };
+  }
+
+  if (!bodyText || bodyText.trim() === '' || bodyText.trim() === '{}' || bodyText.trim() === 'null') {
+    throw { err: "Missing or empty request body in POST." };
+  }
+  let requestData: any;
+  try {
+    requestData = JSON.parse(bodyText);
+  } catch (e) {
+    throw { err: "POST body is not valid JSON", details: bodyText };
+  }
+  if (!requestData || typeof requestData !== 'object') {
+    throw { err: "POST body did not resolve to a valid object", details: bodyText };
+  }
+  return requestData;
+}
+
+async function handleScrape(requestData: any, operationId: string, startTime: number) {
+  const { url, extraction_profile, anti_detection_mode } = requestData;
+  if (!url || !isValidOperationalTarget(url)) {
+    return logAndRespondError(operationId, 'Invalid operational target URL', 400, { provided_url: url });
+  }
+  // Try fast static scrape
+  try {
+    console.log(`[${operationId}] Trying fast static HTML scrape...`);
+    const fastResult = await fastStaticHtmlScrape(url, extraction_profile || 'comprehensive', operationId);
+    if (fastResult && fastResult.success && fastResult.completeness > 0.9) {
+      const operationDuration = Date.now() - startTime;
+      const response = {
+        operation_id: operationId,
+        extraction_results: {
+          raw_data: fastResult.raw_data,
+          processed_data: fastResult.processed_data,
+          media_assets: fastResult.media_assets,
+          structured_content: fastResult.structured_content,
+          metadata_intelligence: fastResult.metadata_intelligence
+        },
+        operational_metrics: {
+          stealth_score: 0.99,
+          detection_probability: 0.0001,
+          extraction_completeness: fastResult.completeness,
+          data_quality_score: fastResult.quality || 0.98,
+          operation_duration: operationDuration
+        },
+        security_analysis: {
+          target_security_level: 'low',
+          evasion_techniques_used: ['html-static'],
+          countermeasures_applied: [],
+          threat_assessment: 'none'
+        },
+        military_grade_features: {
+          zero_footprint_confirmed: true,
+          advanced_ai_behavior: false,
+          multi_vector_approach: false,
+          real_time_adaptation: false,
+          legal_compliance_verified: true
+        },
+        debug_intelligence: {
+          path: 'fast-static',
+          hints: fastResult.debug
+        }
+      };
+      return new Response(JSON.stringify(response), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+  } catch (err) {
+    console.warn(`[${operationId}] Fast static HTML scrape failed, falling back to heavy engine:`, err);
+  }
+  // Fallback: full scrape
+  try {
+    const scrapingEngine = new MilitaryGradeScrapingEngine(5, anti_detection_mode);
+    const dataExtractor = new AdvancedDataExtractor(extraction_profile || 'comprehensive');
+    const orchestrator = new IntelligenceOrchestrator();
+    
+    // Phase 1: Target Reconnaissance
+    const targetIntel = await orchestrator.analyzeTarget(url);
+    
+    // Phase 2: Operational Planning
+    const operationalPlan = await orchestrator.createOperationalPlan(targetIntel, 5);
+    
+    // Phase 3: Advanced Stealth Deployment
+    const stealthSession = await scrapingEngine.deployAdvancedStealth(url, operationalPlan);
+    
+    // Phase 4: Multi-Vector Data Extraction
+    const extractionResults = await dataExtractor.executeMultiVectorExtraction(stealthSession, operationalPlan);
+    
+    // Phase 5: Intelligence Processing
+    const processedIntelligence = await orchestrator.processIntelligence(extractionResults);
+    
+    // Phase 6: Quality Assurance & Validation
+    const validatedResults = await orchestrator.validateAndEnhance(processedIntelligence);
+    
+    // Phase 7: Stealth Cleanup
+    await scrapingEngine.executeStealthCleanup();
+    
+    const operationDuration = Date.now() - startTime;
+    const response = {
+      operation_id: operationId,
+      extraction_results: {
+        raw_data: validatedResults.raw_data,
+        processed_data: validatedResults.processed_data,
+        media_assets: validatedResults.media_assets,
+        structured_content: validatedResults.structured_content,
+        metadata_intelligence: validatedResults.metadata_intelligence
+      },
+      operational_metrics: {
+        stealth_score: validatedResults.stealth_metrics.stealth_score,
+        detection_probability: validatedResults.stealth_metrics.detection_probability,
+        extraction_completeness: validatedResults.quality_metrics.completeness,
+        data_quality_score: validatedResults.quality_metrics.quality_score,
+        operation_duration: operationDuration
+      },
+      security_analysis: validatedResults.security_analysis,
+      military_grade_features: {
+        zero_footprint_confirmed: true,
+        advanced_ai_behavior: true,
+        multi_vector_approach: true,
+        real_time_adaptation: true,
+        legal_compliance_verified: true
+      },
+      debug_intelligence: {
+        operation_timestamp: new Date().toISOString(),
+        target_analyzed: url,
+        extraction_vectors: validatedResults.extraction_vectors || []
+      }
+    };
+    
+    return new Response(JSON.stringify(response), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  } catch (operationError: any) {
+    return logAndRespondError(operationId, `Military-grade operation failed: ${operationError.message || String(operationError)}`, 500, {
+      target_url: url
+    });
+  }
+}
+
+async function handleEnqueue(requestData: any, operationId: string) {
+  const { url, priority } = requestData;
+  if (!url || !isValidOperationalTarget(url)) {
+    return logAndRespondError(operationId, 'Invalid operational target for batch processing', 400, { provided_url: url });
+  }
+  const batchJobId = await enqueueMilitaryOperation(url, priority || 'medium', operationId);
+  return new Response(JSON.stringify({
+    batch_job_id: batchJobId,
+    operation_id: operationId,
+    target_url: url,
+    priority: priority || 'medium',
+    status: 'queued_for_military_processing',
+    timestamp: new Date().toISOString()
+  }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+  });
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -56,7 +233,6 @@ serve(async (req) => {
 
   const operationId = crypto.randomUUID();
   const startTime = Date.now();
-
   try {
     console.log(`🎯 [${operationId}] Military-Grade Scraping Operation Initiated`);
     console.log(`📡 [${operationId}] Request Method: ${req.method}`);
@@ -70,267 +246,36 @@ serve(async (req) => {
     }
 
     if (req.method === 'POST') {
-      let bodyText: string | undefined;
+      let requestData: any;
       try {
-        bodyText = await req.text();
-        console.log(`📩 [${operationId}] Received POST body: '${String(bodyText).slice(0, 500)}'`);
-      } catch (parseError) {
-        return new Response(JSON.stringify({
-          error: 'Failed to decode request payload',
-          operation_id: operationId,
-          details: parseError instanceof Error ? parseError.message : String(parseError),
-          timestamp: new Date().toISOString()
-        }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+        requestData = await parseRequestBody(req, operationId);
+      } catch (parseError: any) {
+        return logAndRespondError(operationId, parseError.err || 'Bad POST body', 400, parseError.details);
       }
 
-      let requestData: any = undefined;
-      if (bodyText && bodyText.trim() && bodyText.trim() !== '{}' && bodyText.trim() !== 'null') {
-        try {
-          requestData = JSON.parse(bodyText);
-          if (!requestData || typeof requestData !== 'object') requestData = undefined;
-        } catch (e) {
-          requestData = undefined;
-        }
-      }
-
-      if (!requestData || typeof requestData !== 'object') {
-        console.log(`❌ [${operationId}] POST missing/invalid body`);
-        return new Response(JSON.stringify({
-          error: "Missing or invalid request body in POST.",
-          operation_id: operationId,
-          timestamp: new Date().toISOString()
-        }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-
-      const { action, url, extraction_profile, anti_detection_mode } = requestData;
-
+      const action = requestData.action;
       if (!action) {
-        return new Response(JSON.stringify({
-          error: "Missing 'action' in scrape request.",
-          operation_id: operationId,
-          details: requestData,
-          timestamp: new Date().toISOString()
-        }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+        return logAndRespondError(operationId, "Missing 'action' in scrape request.", 400, requestData);
       }
 
       if (action === 'scrape') {
-        if (!url || !isValidOperationalTarget(url)) {
-          return new Response(JSON.stringify({
-            error: 'Invalid operational target URL',
-            operation_id: operationId,
-            provided_url: url,
-            timestamp: new Date().toISOString()
-          }), {
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          });
-        }
-
-        // Try fast static scrape first
-        try {
-          console.log(`[${operationId}] Trying fast static HTML scrape...`);
-          const fastResult = await fastStaticHtmlScrape(url, extraction_profile || 'comprehensive', operationId);
-          if (fastResult && fastResult.success && fastResult.completeness > 0.9) {
-            const operationDuration = Date.now() - startTime;
-            const response = {
-              operation_id: operationId,
-              extraction_results: {
-                raw_data: fastResult.raw_data,
-                processed_data: fastResult.processed_data,
-                media_assets: fastResult.media_assets,
-                structured_content: fastResult.structured_content,
-                metadata_intelligence: fastResult.metadata_intelligence
-              },
-              operational_metrics: {
-                stealth_score: 0.99,
-                detection_probability: 0.0001,
-                extraction_completeness: fastResult.completeness,
-                data_quality_score: fastResult.quality || 0.98,
-                operation_duration: operationDuration
-              },
-              security_analysis: {
-                target_security_level: 'low',
-                evasion_techniques_used: ['html-static'],
-                countermeasures_applied: [],
-                threat_assessment: 'none'
-              },
-              military_grade_features: {
-                zero_footprint_confirmed: true,
-                advanced_ai_behavior: false,
-                multi_vector_approach: false,
-                real_time_adaptation: false,
-                legal_compliance_verified: true
-              },
-              debug_intelligence: {
-                path: 'fast-static',
-                hints: fastResult.debug
-              }
-            };
-            return new Response(JSON.stringify(response), {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-            });
-          }
-        } catch (err) {
-          console.warn(`[${operationId}] Fast static HTML scrape failed, falling back to heavy engine:`, err);
-        }
-
-        // Fallback: full military-grade scrape
-        try {
-          console.log(`[${operationId}] Entering full military-grade scrape pipeline...`);
-          const scrapingEngine = new MilitaryGradeScrapingEngine(5, anti_detection_mode);
-          const dataExtractor = new AdvancedDataExtractor(extraction_profile || 'comprehensive');
-          const orchestrator = new IntelligenceOrchestrator();
-
-          // Phase 1: Target Reconnaissance
-          const targetIntel = await orchestrator.analyzeTarget(url);
-
-          // Phase 2: Operational Planning
-          const operationalPlan = await orchestrator.createOperationalPlan(targetIntel, 5);
-
-          // Phase 3: Advanced Stealth Deployment
-          const stealthSession = await scrapingEngine.deployAdvancedStealth(url, operationalPlan);
-
-          // Phase 4: Multi-Vector Data Extraction
-          const extractionResults = await dataExtractor.executeMultiVectorExtraction(stealthSession, operationalPlan);
-
-          // Phase 5: Intelligence Processing
-          const processedIntelligence = await orchestrator.processIntelligence(extractionResults);
-
-          // Phase 6: Quality Assurance & Validation
-          const validatedResults = await orchestrator.validateAndEnhance(processedIntelligence);
-
-          // Phase 7: Stealth Cleanup
-          await scrapingEngine.executeStealthCleanup();
-
-          const operationDuration = Date.now() - startTime;
-          const response = {
-            operation_id: operationId,
-            extraction_results: {
-              raw_data: validatedResults.raw_data,
-              processed_data: validatedResults.processed_data,
-              media_assets: validatedResults.media_assets,
-              structured_content: validatedResults.structured_content,
-              metadata_intelligence: validatedResults.metadata_intelligence
-            },
-            operational_metrics: {
-              stealth_score: validatedResults.stealth_metrics.stealth_score,
-              detection_probability: validatedResults.stealth_metrics.detection_probability,
-              extraction_completeness: validatedResults.quality_metrics.completeness,
-              data_quality_score: validatedResults.quality_metrics.quality_score,
-              operation_duration: operationDuration
-            },
-            security_analysis: validatedResults.security_analysis,
-            military_grade_features: {
-              zero_footprint_confirmed: true,
-              advanced_ai_behavior: true,
-              multi_vector_approach: true,
-              real_time_adaptation: true,
-              legal_compliance_verified: true
-            },
-            debug_intelligence: {
-              operation_timestamp: new Date().toISOString(),
-              target_analyzed: url,
-              extraction_vectors: validatedResults.extraction_vectors || []
-            }
-          };
-
-          return new Response(JSON.stringify(response), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          });
-
-        } catch (operationError: any) {
-          console.error(`❌ [${operationId}] Military-grade pipeline error:`, operationError);
-          return new Response(JSON.stringify({
-            error: `Military-grade operation failed: ${operationError.message}`,
-            operation_id: operationId,
-            target_url: url,
-            timestamp: new Date().toISOString()
-          }), {
-            status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          });
-        }
-
-        console.error(`[${operationId}] Both fast and full scrape failed for: ${url}`);
-        return new Response(JSON.stringify({
-          error: "Military-grade operation could not extract data from the target. Both static and headless approaches failed.",
-          operation_id: operationId,
-          target_url: url,
-          timestamp: new Date().toISOString()
-        }), {
-          status: 500,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        return await handleScrape(requestData, operationId, startTime);
+      } else if (action === 'enqueue') {
+        return await handleEnqueue(requestData, operationId);
+      } else {
+        return logAndRespondError(operationId, `Invalid military operation '${action}'`, 400, {
+          supported_operations: ['scrape', 'enqueue'],
+          received_operation: action
         });
       }
-
-      if (action === 'enqueue') {
-        if (!url || !isValidOperationalTarget(url)) {
-          return new Response(JSON.stringify({
-            error: 'Invalid operational target for batch processing',
-            operation_id: operationId,
-            provided_url: url,
-            timestamp: new Date().toISOString()
-          }), {
-            status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-          });
-        }
-        const batchJobId = await enqueueMilitaryOperation(url, requestData.priority || 'medium', operationId);
-        return new Response(JSON.stringify({
-          batch_job_id: batchJobId,
-          operation_id: operationId,
-          target_url: url,
-          priority: requestData.priority || 'medium',
-          status: 'queued_for_military_processing',
-          timestamp: new Date().toISOString()
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-
-      // Unknown/invalid action
-      return new Response(JSON.stringify({
-        error: `Invalid military operation '${action}'`,
-        supported_operations: ['scrape', 'enqueue'],
-        received_operation: action,
-        operation_id: operationId,
-        timestamp: new Date().toISOString()
-      }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
     }
 
-    // Method not allowed, never ever return status for POST failures!
-    return new Response(JSON.stringify({
-      error: `Method ${req.method} not supported`,
-      allowed_methods: ['GET', 'POST'],
-      operation_id: operationId,
-      timestamp: new Date().toISOString()
-    }), {
-      status: 405,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    // Any other method
+    return logAndRespondError(operationId, `Method ${req.method} not supported`, 405, {
+      allowed_methods: ['GET', 'POST']
     });
-
   } catch (error: any) {
-    console.error(`[${operationId}] Top-level handler exception:`, error);
-    return new Response(JSON.stringify({
-      error: `Critical military operation failure: ${error.message}`,
-      operation_id: operationId,
-      timestamp: new Date().toISOString()
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+    return logAndRespondError(operationId, `Critical top-level failure: ${error.message || String(error)}`, 500);
   }
 });
 
