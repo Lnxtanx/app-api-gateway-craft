@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   Shield, 
   Brain, 
@@ -21,7 +23,9 @@ import {
   LoaderCircle,
   Play,
   Plus,
-  BarChart3
+  BarChart3,
+  Database,
+  ExternalLink
 } from 'lucide-react';
 import CodeBlock from './CodeBlock';
 
@@ -34,6 +38,10 @@ interface StealthJob {
   captcha_encountered?: boolean;
   created_at: string;
   structured_data?: any;
+  html?: string;
+  metadata?: any;
+  api_endpoint?: string;
+  api_key?: string;
 }
 
 interface SystemStats {
@@ -55,6 +63,7 @@ const StealthScrapingInterface: React.FC = () => {
   const [systemStats, setSystemStats] = useState<SystemStats | null>(null);
   const [selectedJob, setSelectedJob] = useState<StealthJob | null>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const fetchSystemStats = async () => {
     try {
@@ -64,7 +73,7 @@ const StealthScrapingInterface: React.FC = () => {
         headers: { 'Content-Type': 'application/json' }
       });
 
-      console.log('📊 System stats response:', { data, error });
+      console.log('📊 System stats response:', data);
 
       if (error) {
         console.error('❌ Error fetching system stats:', error);
@@ -73,13 +82,47 @@ const StealthScrapingInterface: React.FC = () => {
       
       setSystemStats(data);
       console.log('✅ System stats updated successfully');
-    } catch (error) {
+    } catch (error: any) {
       console.error('💥 Failed to fetch system stats:', error);
       toast({
         title: "Error",
         description: `Failed to fetch system stats: ${error.message}`,
         variant: "destructive",
       });
+    }
+  };
+
+  const generateApiFromScrapeResult = async (scrapeResult: any) => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to save APIs to dashboard",
+        variant: "destructive",
+      });
+      return null;
+    }
+
+    try {
+      console.log('🔧 Generating API from scrape result...');
+      const { data: generatedApiData, error } = await supabase.functions.invoke('generate-api', {
+        body: { source_url: scrapeResult.url },
+      });
+
+      if (error) {
+        console.error('❌ Error generating API:', error);
+        throw error;
+      }
+
+      console.log('✅ API generated successfully:', generatedApiData);
+      return generatedApiData;
+    } catch (error: any) {
+      console.error('💥 Failed to generate API:', error);
+      toast({
+        title: "API Generation Failed",
+        description: `Failed to save to dashboard: ${error.message}`,
+        variant: "destructive",
+      });
+      return null;
     }
   };
 
@@ -101,7 +144,7 @@ const StealthScrapingInterface: React.FC = () => {
         headers: { 'Content-Type': 'application/json' }
       });
 
-      console.log('📋 Enqueue response:', { data, error });
+      console.log('📋 Enqueue response:', data);
 
       if (error) {
         console.error('❌ Error enqueuing job:', error);
@@ -124,7 +167,6 @@ const StealthScrapingInterface: React.FC = () => {
         description: `Stealth scraping job queued for ${data.url}`,
       });
 
-      // Refresh stats
       await fetchSystemStats();
     } catch (error: any) {
       console.error('💥 Failed to enqueue job:', error);
@@ -156,11 +198,22 @@ const StealthScrapingInterface: React.FC = () => {
         headers: { 'Content-Type': 'application/json' }
       });
 
-      console.log('🚀 Direct scrape response:', { data, error });
+      console.log('🚀 Direct scrape response:', data);
 
       if (error) {
         console.error('❌ Error in direct scrape:', error);
         throw error;
+      }
+
+      if (!data || !data.url) {
+        throw new Error('Invalid response from stealth scraper');
+      }
+
+      // Generate API for the scraped data if user is logged in
+      let apiData = null;
+      if (user) {
+        console.log('👤 User logged in, generating API...');
+        apiData = await generateApiFromScrapeResult(data);
       }
 
       const newJob: StealthJob = {
@@ -168,10 +221,14 @@ const StealthScrapingInterface: React.FC = () => {
         url: data.url,
         priority: 'high',
         status: 'completed',
-        profile_used: data.metadata?.profile_used,
-        captcha_encountered: data.metadata?.captcha_encountered,
+        profile_used: data.metadata?.profile_used || 'Unknown',
+        captcha_encountered: data.metadata?.captcha_encountered || false,
         created_at: new Date().toISOString(),
-        structured_data: data.structured_data
+        structured_data: data.structured_data,
+        html: data.html,
+        metadata: data.metadata,
+        api_endpoint: apiData?.api_endpoint,
+        api_key: apiData?.api_key
       };
 
       setJobs(prev => [newJob, ...prev]);
@@ -179,9 +236,14 @@ const StealthScrapingInterface: React.FC = () => {
       setUrl('');
       
       console.log('✅ Direct scrape completed successfully');
+      
+      const message = apiData 
+        ? `Successfully scraped ${data.url} and saved API to dashboard`
+        : `Successfully scraped ${data.url} using ${data.metadata?.profile_used || 'stealth profile'}`;
+      
       toast({
-        title: "Direct Scrape Complete",
-        description: `Successfully scraped ${data.url} using ${data.metadata?.profile_used}`,
+        title: "Stealth Scrape Complete",
+        description: message,
       });
     } catch (error: any) {
       console.error('💥 Direct scraping failed:', error);
@@ -278,7 +340,7 @@ const StealthScrapingInterface: React.FC = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Brain className="h-5 w-5" />
-              Level 3 Intelligence Features
+              Level 4 Intelligence Features
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -362,6 +424,12 @@ const StealthScrapingInterface: React.FC = () => {
               <div className="text-sm text-muted-foreground space-y-1">
                 <p><strong>Direct Scrape:</strong> Immediate stealth scraping with random profile</p>
                 <p><strong>Queue Job:</strong> Add to distributed job queue for processing</p>
+                {user && (
+                  <p className="text-green-600"><strong>✓ Logged in:</strong> Results will be saved to your dashboard</p>
+                )}
+                {!user && (
+                  <p className="text-amber-600"><strong>⚠ Not logged in:</strong> Results won't be saved to dashboard</p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -405,6 +473,12 @@ const StealthScrapingInterface: React.FC = () => {
                               CAPTCHA
                             </Badge>
                           )}
+                          {job.api_endpoint && (
+                            <Badge variant="outline">
+                              <Database className="h-3 w-3 mr-1" />
+                              API Saved
+                            </Badge>
+                          )}
                         </div>
                       </div>
                       
@@ -423,51 +497,123 @@ const StealthScrapingInterface: React.FC = () => {
 
         <TabsContent value="results" className="space-y-4">
           {selectedJob ? (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>Scraping Results</span>
-                  <Badge variant={getStatusColor(selectedJob.status)}>
-                    {selectedJob.status}
-                  </Badge>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <h4 className="font-medium mb-2">Target URL</h4>
-                  <CodeBlock code={selectedJob.url} />
-                </div>
-
-                {selectedJob.structured_data && (
-                  <div>
-                    <h4 className="font-medium mb-2">Extracted Data</h4>
-                    <CodeBlock code={JSON.stringify(selectedJob.structured_data, null, 2)} />
-                  </div>
-                )}
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <h4 className="font-medium mb-2">Job Details</h4>
-                    <div className="text-sm space-y-1">
-                      <p><strong>Priority:</strong> {selectedJob.priority}</p>
-                      <p><strong>Created:</strong> {new Date(selectedJob.created_at).toLocaleString()}</p>
-                      {selectedJob.profile_used && (
-                        <p><strong>Profile:</strong> {selectedJob.profile_used}</p>
+            <div className="space-y-4">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>Scraping Results</span>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={getStatusColor(selectedJob.status)}>
+                        {selectedJob.status}
+                      </Badge>
+                      {selectedJob.api_endpoint && (
+                        <Badge variant="outline">
+                          <Database className="h-3 w-3 mr-1" />
+                          API Generated
+                        </Badge>
                       )}
                     </div>
-                  </div>
-                  
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
                   <div>
-                    <h4 className="font-medium mb-2">Security Features</h4>
-                    <div className="text-sm space-y-1">
-                      <p><strong>Anti-Detection:</strong> ✓ Enabled</p>
-                      <p><strong>Human Behavior:</strong> ✓ Simulated</p>
-                      <p><strong>CAPTCHA Detection:</strong> {selectedJob.captcha_encountered ? '⚠️ Found' : '✓ None'}</p>
+                    <h4 className="font-medium mb-2 flex items-center gap-2">
+                      <Globe className="h-4 w-4" />
+                      Target URL
+                    </h4>
+                    <div className="flex items-center gap-2">
+                      <CodeBlock code={selectedJob.url} />
+                      <Button variant="outline" size="sm" asChild>
+                        <a href={selectedJob.url} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </Button>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+
+                  {selectedJob.api_endpoint && selectedJob.api_key && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <h4 className="font-medium mb-2 text-green-800 flex items-center gap-2">
+                        <Database className="h-4 w-4" />
+                        Generated API (Saved to Dashboard)
+                      </h4>
+                      <div className="space-y-2">
+                        <div>
+                          <label className="text-sm font-medium text-green-700">Endpoint:</label>
+                          <CodeBlock code={selectedJob.api_endpoint} />
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-green-700">API Key:</label>
+                          <CodeBlock code={selectedJob.api_key} />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedJob.structured_data && (
+                    <div>
+                      <h4 className="font-medium mb-2 flex items-center gap-2">
+                        <Brain className="h-4 w-4" />
+                        Extracted Structured Data
+                      </h4>
+                      <div className="bg-muted rounded-lg p-4 max-h-96 overflow-y-auto">
+                        <pre className="text-sm">
+                          {JSON.stringify(selectedJob.structured_data, null, 2)}
+                        </pre>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="font-medium mb-2">Job Details</h4>
+                      <div className="text-sm space-y-1">
+                        <p><strong>Priority:</strong> {selectedJob.priority}</p>
+                        <p><strong>Created:</strong> {new Date(selectedJob.created_at).toLocaleString()}</p>
+                        <p><strong>Profile Used:</strong> {selectedJob.profile_used || 'Unknown'}</p>
+                        {selectedJob.metadata?.content_length && (
+                          <p><strong>Content Length:</strong> {selectedJob.metadata.content_length.toLocaleString()} characters</p>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h4 className="font-medium mb-2">Security Features</h4>
+                      <div className="text-sm space-y-1">
+                        <p><strong>Anti-Detection:</strong> ✓ Enabled</p>
+                        <p><strong>Human Behavior:</strong> ✓ Simulated</p>
+                        <p><strong>CAPTCHA Detection:</strong> {selectedJob.captcha_encountered ? '⚠️ Found' : '✓ None'}</p>
+                        <p><strong>Fingerprint Rotation:</strong> ✓ Active</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {selectedJob.metadata?.extraction_summary && (
+                    <div>
+                      <h4 className="font-medium mb-2">Extraction Summary</h4>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div className="text-center">
+                          <div className="font-semibold">{selectedJob.metadata.extraction_summary.quotes_found || 0}</div>
+                          <div className="text-muted-foreground">Quotes</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="font-semibold">{selectedJob.metadata.extraction_summary.articles_found || 0}</div>
+                          <div className="text-muted-foreground">Articles</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="font-semibold">{selectedJob.metadata.extraction_summary.links_found || 0}</div>
+                          <div className="text-muted-foreground">Links</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="font-semibold">{selectedJob.metadata.extraction_summary.images_found || 0}</div>
+                          <div className="text-muted-foreground">Images</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           ) : (
             <Card>
               <CardContent className="text-center py-8">
