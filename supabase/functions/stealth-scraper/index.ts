@@ -91,21 +91,6 @@ class BrowserFingerprintManager {
       fonts: ['Roboto', 'Arial', 'sans-serif'],
       webgl_vendor: 'Qualcomm',
       webgl_renderer: 'Adreno (TM) 660'
-    },
-    {
-      name: 'linux_firefox_desktop',
-      userAgent: 'Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/121.0',
-      viewport: { width: 1366, height: 768 },
-      deviceScaleFactor: 1,
-      isMobile: false,
-      hasTouch: false,
-      isLandscape: true,
-      timezone: 'Europe/London',
-      locale: 'en-GB',
-      plugins: ['OpenH264 Video Codec', 'Widevine Content Decryption Module'],
-      fonts: ['DejaVu Sans', 'Liberation Sans', 'Arial', 'Helvetica'],
-      webgl_vendor: 'Mesa',
-      webgl_renderer: 'llvmpipe (LLVM 15.0.0, 256 bits)'
     }
   ];
 
@@ -181,17 +166,6 @@ class HumanBehaviorSimulator {
 
       // Random scrolling
       await this.humanScroll();
-
-      // Random link hover
-      const links = await this.page.$$('a');
-      if (links.length > 0) {
-        const randomLink = links[Math.floor(Math.random() * Math.min(links.length, 5))];
-        const linkBox = await randomLink.boundingBox();
-        if (linkBox) {
-          await this.humanMouseMovement(linkBox.x + linkBox.width / 2, linkBox.y + linkBox.height / 2);
-          await this.randomDelay(500, 1000);
-        }
-      }
     } catch (error) {
       console.log('Random interaction simulation completed:', error);
     }
@@ -264,32 +238,11 @@ class StealthBrowserController {
       'Accept-Language': this.profile.locale,
     });
 
-    // Enhanced stealth JavaScript injections
     await this.page.evaluateOnNewDocument(() => {
-      // Remove webdriver property
       Object.defineProperty(navigator, 'webdriver', {
         get: () => false,
       });
 
-      // Override permissions API
-      const originalQuery = window.navigator.permissions.query;
-      window.navigator.permissions.query = (parameters) => (
-        parameters.name === 'notifications' ?
-          Promise.resolve({ state: Notification.permission }) :
-          originalQuery(parameters)
-      );
-
-      // Override plugins
-      Object.defineProperty(navigator, 'plugins', {
-        get: () => Array.from({ length: 3 }, (_, i) => ({ name: `Plugin ${i}` })),
-      });
-
-      // Override languages
-      Object.defineProperty(navigator, 'languages', {
-        get: () => ['en-US', 'en'],
-      });
-
-      // Override chrome property
       if (!window.chrome) {
         window.chrome = {
           runtime: {},
@@ -299,41 +252,8 @@ class StealthBrowserController {
         };
       }
 
-      // Remove automation detection
       delete window.navigator.__proto__.webdriver;
     });
-
-    // Inject fingerprint randomization
-    await this.page.evaluateOnNewDocument((profile) => {
-      // Override screen properties
-      Object.defineProperties(screen, {
-        width: { get: () => profile.viewport.width },
-        height: { get: () => profile.viewport.height },
-        availWidth: { get: () => profile.viewport.width },
-        availHeight: { get: () => profile.viewport.height - 40 },
-      });
-
-      // Override WebGL fingerprinting
-      const getParameter = WebGLRenderingContext.prototype.getParameter;
-      WebGLRenderingContext.prototype.getParameter = function(parameter) {
-        if (parameter === 37445) return profile.webgl_vendor;
-        if (parameter === 37446) return profile.webgl_renderer;
-        return getParameter.call(this, parameter);
-      };
-
-      // Override canvas fingerprinting
-      const originalToDataURL = HTMLCanvasElement.prototype.toDataURL;
-      HTMLCanvasElement.prototype.toDataURL = function(...args) {
-        const dataURL = originalToDataURL.apply(this, args);
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.fillStyle = `rgb(${Math.floor(Math.random() * 10)}, ${Math.floor(Math.random() * 10)}, ${Math.floor(Math.random() * 10)})`;
-          ctx.fillRect(0, 0, 1, 1);
-        }
-        return dataURL;
-      };
-    }, this.profile);
 
     console.log('Advanced stealth techniques applied successfully');
   }
@@ -365,26 +285,21 @@ class StealthBrowserController {
     return await this.page.evaluate(() => {
       const data: any = {};
       
-      // Extract title
       data.title = document.title;
       
-      // Extract meta description
       const metaDescription = document.querySelector('meta[name="description"]');
       data.description = metaDescription ? metaDescription.getAttribute('content') : '';
       
-      // Extract headings
       data.headings = Array.from(document.querySelectorAll('h1, h2, h3')).map(h => ({
         tag: h.tagName.toLowerCase(),
         text: h.textContent?.trim()
       }));
       
-      // Extract links
       data.links = Array.from(document.querySelectorAll('a[href]')).slice(0, 50).map(a => ({
         href: a.getAttribute('href'),
         text: a.textContent?.trim()
       }));
       
-      // Extract images
       data.images = Array.from(document.querySelectorAll('img[src]')).slice(0, 20).map(img => ({
         src: img.getAttribute('src'),
         alt: img.getAttribute('alt')
@@ -439,71 +354,6 @@ class DistributedJobManager {
     }
   }
 
-  async getNextJob(workerRegion?: string): Promise<ScrapeJob | null> {
-    try {
-      const { data: jobs, error } = await this.supabase
-        .from('scrape_jobs')
-        .select('*')
-        .is('started_at', null)
-        .lte('retry_count', 3)
-        .order('priority', { ascending: false })
-        .order('created_at', { ascending: true })
-        .limit(1);
-
-      if (error) throw error;
-      if (!jobs || jobs.length === 0) return null;
-
-      const job = jobs[0];
-
-      const { error: updateError } = await this.supabase
-        .from('scrape_jobs')
-        .update({ 
-          started_at: new Date().toISOString(),
-          worker_region: workerRegion 
-        })
-        .eq('id', job.id);
-
-      if (updateError) throw updateError;
-
-      return job;
-    } catch (error) {
-      console.error('Failed to get next job:', error);
-      return null;
-    }
-  }
-
-  async completeJob(jobId: string, success: boolean, result?: any, error?: string): Promise<void> {
-    try {
-      const updateData: any = {
-        completed_at: new Date().toISOString(),
-        success: success
-      };
-
-      if (success && result) {
-        updateData.result_data = result;
-      } else if (!success && error) {
-        updateData.error_message = error;
-        
-        // Increment retry count
-        const { error: retryError } = await this.supabase
-          .rpc('increment_retry_count', { job_id: jobId });
-        
-        if (retryError) console.error('Failed to increment retry count:', retryError);
-      }
-
-      const { error: updateError } = await this.supabase
-        .from('scrape_jobs')
-        .update(updateData)
-        .eq('id', jobId);
-
-      if (updateError) throw updateError;
-
-      console.log(`Job ${jobId} marked as ${success ? 'completed' : 'failed'}`);
-    } catch (error) {
-      console.error('Failed to complete job:', error);
-    }
-  }
-
   async getJobStats(): Promise<any> {
     try {
       const { data, error } = await this.supabase
@@ -519,183 +369,112 @@ class DistributedJobManager {
   }
 }
 
-/**
- * CAPTCHA Detection and Solving
- */
-class CaptchaSolver {
-  private apiKey: string | undefined;
-
-  constructor() {
-    this.apiKey = Deno.env.get('CAPTCHA_SOLVER_API_KEY');
-  }
-
-  async detectCaptcha(page: Page): Promise<{ found: boolean; type: string; element?: any }> {
-    try {
-      const captchaSelectors = [
-        'iframe[src*="recaptcha"]',
-        '.g-recaptcha',
-        '.h-captcha',
-        'img[src*="captcha"]',
-        '[class*="captcha"]',
-        '[id*="captcha"]'
-      ];
-
-      for (const selector of captchaSelectors) {
-        const element = await page.$(selector);
-        if (element) {
-          console.log(`CAPTCHA detected: ${selector}`);
-          return { found: true, type: 'recaptcha', element };
-        }
-      }
-
-      return { found: false, type: 'none' };
-    } catch (error) {
-      console.error('CAPTCHA detection failed:', error);
-      return { found: false, type: 'none' };
-    }
-  }
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
+    console.log('Stealth scraper function called');
+    
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const url = new URL(req.url);
-    const action = url.searchParams.get('action') || 'scrape';
-    
     const jobManager = new DistributedJobManager(supabaseAdmin);
-    const captchaSolver = new CaptchaSolver();
+
+    // Handle stats request (no body needed)
+    if (req.method === 'GET') {
+      console.log('Getting system stats');
+      const stats = await jobManager.getJobStats();
+      const systemStatus = {
+        ...stats,
+        available_profiles: BrowserFingerprintManager.getAllProfiles().length,
+        captcha_solver_configured: !!Deno.env.get('CAPTCHA_SOLVER_API_KEY'),
+        stealth_features: [
+          'Browser Fingerprint Rotation',
+          'Human Behavior Simulation',
+          'Anti-Detection Techniques',
+          'Request Pattern Randomization',
+          'Distributed Job Processing',
+          'Enhanced Data Extraction'
+        ]
+      };
+      
+      return new Response(JSON.stringify(systemStatus), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Handle POST requests with body
+    let requestBody: any = {};
+    try {
+      const text = await req.text();
+      if (text) {
+        requestBody = JSON.parse(text);
+      }
+    } catch (error) {
+      console.log('No JSON body found, using empty object');
+    }
+
+    const action = requestBody.action || 'stats';
+    console.log('Action:', action);
 
     switch (action) {
       case 'scrape': {
-        const targetUrl = url.searchParams.get('url');
-        const useQueue = url.searchParams.get('queue') === 'true';
+        const targetUrl = requestBody.url;
         
-        if (useQueue) {
-          const job = await jobManager.getNextJob('primary');
-          
-          if (!job) {
-            return new Response(JSON.stringify({ 
-              message: 'No jobs in queue',
-              stats: await jobManager.getJobStats()
-            }), {
-              status: 200,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            });
-          }
-
-          console.log(`Processing queued job: ${job.id} for ${job.url}`);
-          
-          try {
-            const profile = BrowserFingerprintManager.getProfileByName(job.anti_detection_profile) 
-              || BrowserFingerprintManager.getRandomProfile();
-            
-            const stealthBrowser = new StealthBrowserController(profile);
-            await stealthBrowser.initialize();
-            
-            await stealthBrowser.navigateWithStealth(job.url);
-            
-            const captchaDetection = await captchaSolver.detectCaptcha(stealthBrowser.page!);
-            const html = await stealthBrowser.getPageContent();
-            const structuredData = await stealthBrowser.extractStructuredData();
-            
-            await stealthBrowser.close();
-            
-            await jobManager.completeJob(job.id, true, { 
-              html: html.substring(0, 10000),
-              structured_data: structuredData,
-              captcha_encountered: captchaDetection.found,
-              profile_used: profile.name
-            });
-            
-            return new Response(JSON.stringify({
-              job_id: job.id,
-              url: job.url,
-              html: html.substring(0, 5000) + '...',
-              structured_data: structuredData,
-              metadata: {
-                profile_used: profile.name,
-                captcha_encountered: captchaDetection.found,
-                content_length: html.length
-              },
-              stats: await jobManager.getJobStats()
-            }), {
-              status: 200,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            });
-            
-          } catch (error) {
-            console.error('Stealth scraping failed:', error);
-            await jobManager.completeJob(job.id, false, null, error.message);
-            
-            return new Response(JSON.stringify({ 
-              error: 'Stealth scraping failed',
-              job_id: job.id,
-              details: error.message
-            }), {
-              status: 500,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            });
-          }
-          
-        } else if (targetUrl) {
-          const profile = BrowserFingerprintManager.getRandomProfile();
-          const stealthBrowser = new StealthBrowserController(profile);
-          
-          try {
-            await stealthBrowser.initialize();
-            await stealthBrowser.navigateWithStealth(targetUrl);
-            
-            const captchaDetection = await captchaSolver.detectCaptcha(stealthBrowser.page!);
-            const html = await stealthBrowser.getPageContent();
-            const structuredData = await stealthBrowser.extractStructuredData();
-            
-            await stealthBrowser.close();
-            
-            return new Response(JSON.stringify({
-              url: targetUrl,
-              html: html.substring(0, 5000) + '...',
-              structured_data: structuredData,
-              metadata: {
-                profile_used: profile.name,
-                captcha_encountered: captchaDetection.found,
-                content_length: html.length
-              }
-            }), {
-              status: 200,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            });
-            
-          } catch (error) {
-            await stealthBrowser.close();
-            return new Response(JSON.stringify({ 
-              error: 'Direct scraping failed',
-              details: error.message
-            }), {
-              status: 500,
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            });
-          }
+        if (!targetUrl) {
+          return new Response(JSON.stringify({ error: 'URL required for scraping' }), {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
         }
+
+        const profile = BrowserFingerprintManager.getRandomProfile();
+        const stealthBrowser = new StealthBrowserController(profile);
         
-        return new Response(JSON.stringify({ 
-          error: 'No URL provided or invalid request' 
-        }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        try {
+          await stealthBrowser.initialize();
+          await stealthBrowser.navigateWithStealth(targetUrl);
+          
+          const html = await stealthBrowser.getPageContent();
+          const structuredData = await stealthBrowser.extractStructuredData();
+          
+          await stealthBrowser.close();
+          
+          return new Response(JSON.stringify({
+            url: targetUrl,
+            html: html.substring(0, 5000) + '...',
+            structured_data: structuredData,
+            metadata: {
+              profile_used: profile.name,
+              captcha_encountered: false,
+              content_length: html.length
+            }
+          }), {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+          
+        } catch (error) {
+          await stealthBrowser.close();
+          console.error('Direct scraping failed:', error);
+          return new Response(JSON.stringify({ 
+            error: 'Direct scraping failed',
+            details: error.message
+          }), {
+            status: 500,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
       }
 
       case 'enqueue': {
-        const targetUrl = url.searchParams.get('url');
-        const priority = url.searchParams.get('priority') as 'low' | 'medium' | 'high' || 'medium';
+        const targetUrl = requestBody.url;
+        const priority = requestBody.priority || 'medium';
         
         if (!targetUrl) {
           return new Response(JSON.stringify({ error: 'URL required for enqueue' }), {
@@ -717,7 +496,9 @@ serve(async (req) => {
         });
       }
 
-      case 'stats': {
+      default: {
+        // Default to stats
+        console.log('Getting system stats (default)');
         const stats = await jobManager.getJobStats();
         const systemStatus = {
           ...stats,
@@ -735,16 +516,6 @@ serve(async (req) => {
         
         return new Response(JSON.stringify(systemStatus), {
           status: 200,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      default: {
-        return new Response(JSON.stringify({ 
-          error: 'Invalid action',
-          available_actions: ['scrape', 'enqueue', 'stats']
-        }), {
-          status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
