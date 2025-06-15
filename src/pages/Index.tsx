@@ -41,7 +41,6 @@ const Index = () => {
   const [availableFields, setAvailableFields] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState('response');
   const [showAdvancedLogger, setShowAdvancedLogger] = useState(false);
-  const [intelligenceLevel, setIntelligenceLevel] = useState(5); // Default to Level 5
 
   const { user } = useAuth();
   const { toast } = useToast();
@@ -238,7 +237,7 @@ const Index = () => {
         </h2>
         <p className="max-w-2xl text-lg md:text-xl text-muted-foreground mb-8">
           Enter a URL, and we'll give you a structured API to access its content. 
-          Now with Level 5 Military-Grade AI enhancement, quantum stealth protocols, and zero-footprint intelligence.
+          Now with Military-Grade stealth scraping, quantum protocols, and zero-footprint intelligence.
         </p>
 
         {/* Enhanced Status Dashboard */}
@@ -280,7 +279,7 @@ const Index = () => {
               <div>
                 <p className="font-semibold">Enhanced features available with account</p>
                 <p className="text-sm mt-1">
-                  Please <Link to="/auth" className="font-bold underline hover:text-amber-700 transition-colors">log in</Link> to save and manage your generated APIs with Level 5 Military-Grade features.
+                  Please <Link to="/auth" className="font-bold underline hover:text-amber-700 transition-colors">log in</Link> to save and manage your generated APIs with Military-Grade stealth features.
                 </p>
               </div>
             </div>
@@ -293,9 +292,8 @@ const Index = () => {
             <AdvancedLogger 
               isActive={isLoading} 
               url={url}
-              intelligenceLevel={intelligenceLevel}
               onComplete={() => {
-                console.log('Military-grade intelligence operation completed');
+                console.log('Military-grade stealth scraping operation completed');
               }} 
             />
           </div>
@@ -309,7 +307,7 @@ const Index = () => {
             </div>
             <div className="text-center">
               <h3 className="text-xl font-semibold mb-2 bg-gradient-to-r from-primary via-purple-500 to-blue-500 bg-clip-text text-transparent">
-                Deploying Level {intelligenceLevel} Military-Grade Intelligence
+                Deploying Military-Grade Stealth Scraping
               </h3>
               <p className="text-muted-foreground mb-4">Quantum protocols initializing for maximum stealth...</p>
             </div>
@@ -417,7 +415,7 @@ const Index = () => {
             <span className="mx-2">•</span>
             <span className="flex items-center gap-1">
               <Crown className="h-3 w-3 text-amber-500" />
-              Level 5 Military-Grade AI
+              Military-Grade Stealth AI
             </span>
           </div>
         </div>

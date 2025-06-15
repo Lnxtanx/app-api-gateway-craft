@@ -44,14 +44,12 @@ interface LogEntry {
 interface AdvancedLoggerProps {
   isActive: boolean;
   url?: string;
-  intelligenceLevel?: number;
   onComplete?: () => void;
 }
 
 const AdvancedLogger: React.FC<AdvancedLoggerProps> = ({ 
   isActive, 
   url, 
-  intelligenceLevel = 4,
   onComplete 
 }) => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -61,25 +59,25 @@ const AdvancedLogger: React.FC<AdvancedLoggerProps> = ({
 
   const militaryPhases = [
     { 
-      name: 'Intelligence Assessment', 
+      name: 'Target Intelligence Assessment', 
       icon: <Brain className="h-4 w-4" />, 
       duration: 2000,
       operations: ['Target Analysis', 'Security Assessment', 'Technology Stack Analysis', 'Risk Evaluation']
     },
     { 
-      name: 'Operational Planning', 
+      name: 'Stealth Operation Planning', 
       icon: <Target className="h-4 w-4" />, 
       duration: 1500,
       operations: ['Strategy Formation', 'Resource Allocation', 'Contingency Planning', 'Success Criteria']
     },
     { 
-      name: 'Stealth Deployment', 
+      name: 'Advanced Stealth Deployment', 
       icon: <Shield className="h-4 w-4" />, 
       duration: 3000,
       operations: ['Quantum Fingerprint Masking', 'Neural Behavior Simulation', 'Proxy Mesh Establishment', 'Zero-Footprint Architecture']
     },
     { 
-      name: 'Multi-Vector Extraction', 
+      name: 'Multi-Vector Data Extraction', 
       icon: <Search className="h-4 w-4" />, 
       duration: 4000,
       operations: ['DOM Structure Analysis', 'Content Semantic Extraction', 'Media Asset Harvesting', 'API Intelligence Gathering', 'Schema.org Mining']
@@ -97,7 +95,7 @@ const AdvancedLogger: React.FC<AdvancedLoggerProps> = ({
       operations: ['Content Validation', 'Metadata Enhancement', 'Quality Metrics', 'Security Analysis']
     },
     { 
-      name: 'Mission Cleanup', 
+      name: 'Stealth Mission Cleanup', 
       icon: <Atom className="h-4 w-4" />, 
       duration: 1000,
       operations: ['Operational Traces Clearing', 'Forensic Evidence Neutralization', 'Quantum Signature Reset']
@@ -130,8 +128,8 @@ const AdvancedLogger: React.FC<AdvancedLoggerProps> = ({
     let totalDuration = militaryPhases.reduce((sum, phase) => sum + phase.duration, 0);
     let elapsed = 0;
 
-    const runMilitaryOperation = async () => {
-      addLog('military', 'System', `🎯 Initiating Level ${intelligenceLevel} Military-Grade Intelligence Operation`, <Crown className="h-4 w-4" />);
+    const runStealthOperation = async () => {
+      addLog('military', 'System', `🎯 Initiating Military-Grade Stealth Scraping Operation`, <Crown className="h-4 w-4" />);
       addLog('info', 'Target', `Target acquired: ${url}`, <Target className="h-4 w-4" />);
 
       for (const phase of militaryPhases) {
@@ -176,7 +174,7 @@ const AdvancedLogger: React.FC<AdvancedLoggerProps> = ({
       }
 
       // Final completion logs
-      addLog('military', 'Mission', '🏆 Military-Grade Intelligence Operation completed', <Crown className="h-4 w-4" />);
+      addLog('military', 'Mission', '🏆 Stealth Scraping Operation completed', <Crown className="h-4 w-4" />);
       addLog('success', 'System', `📊 Intelligence gathered with ${(Math.random() * 0.02 + 0.98).toFixed(3)} stealth score`, <Shield className="h-4 w-4" />);
       addLog('success', 'System', `🎯 ${Math.floor(Math.random() * 50) + 150} data vectors extracted`, <Database className="h-4 w-4" />);
       
@@ -185,8 +183,8 @@ const AdvancedLogger: React.FC<AdvancedLoggerProps> = ({
       onComplete?.();
     };
 
-    runMilitaryOperation();
-  }, [isActive, url, intelligenceLevel, onComplete]);
+    runStealthOperation();
+  }, [isActive, url, onComplete]);
 
   const getLevelColor = (level: LogEntry['level']) => {
     switch (level) {
@@ -208,18 +206,6 @@ const AdvancedLogger: React.FC<AdvancedLoggerProps> = ({
     }
   };
 
-  const getIntelligenceLevelInfo = () => {
-    switch (intelligenceLevel) {
-      case 5: return { name: 'Level 5: Quantum Military', color: 'text-purple-600', icon: <Atom className="h-5 w-5" /> };
-      case 4: return { name: 'Level 4: Enterprise Military', color: 'text-amber-600', icon: <Crown className="h-5 w-5" /> };
-      case 3: return { name: 'Level 3: Advanced Tactical', color: 'text-red-600', icon: <Lock className="h-5 w-5" /> };
-      case 2: return { name: 'Level 2: Strategic', color: 'text-blue-600', icon: <Brain className="h-5 w-5" /> };
-      default: return { name: 'Level 1: Basic', color: 'text-green-600', icon: <Shield className="h-5 w-5" /> };
-    }
-  };
-
-  const levelInfo = getIntelligenceLevelInfo();
-
   if (!isActive && logs.length === 0) return null;
 
   return (
@@ -227,9 +213,9 @@ const AdvancedLogger: React.FC<AdvancedLoggerProps> = ({
       <CardHeader className="pb-4">
         <CardTitle className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <span className={levelInfo.color}>{levelInfo.icon}</span>
+            <span className="text-purple-600"><Atom className="h-5 w-5" /></span>
             <span className="bg-gradient-to-r from-primary via-purple-500 to-blue-500 bg-clip-text text-transparent">
-              {levelInfo.name} Intelligence
+              Military-Grade Stealth Scraping
             </span>
           </div>
           <Badge variant="outline" className="animate-pulse border-primary/50">
