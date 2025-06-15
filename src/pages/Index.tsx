@@ -1,16 +1,17 @@
+
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowRight, LoaderCircle, Shield } from 'lucide-react';
+import { ArrowRight, LoaderCircle, Shield, Sparkles, Zap, Globe } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from "@/hooks/use-toast";
 import { Link } from 'react-router-dom';
 import ApiResponseDisplay from '@/components/ApiResponseDisplay';
 import ApiQueryInterface from '@/components/ApiQueryInterface';
-import Header from '@/components/Header'; // Added Header import
+import Header from '@/components/Header';
 
 interface QueryParams {
   search?: string;
@@ -188,57 +189,83 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-blue-950 dark:to-indigo-900 text-foreground flex flex-col relative overflow-hidden">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-600/20 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-indigo-400/20 to-pink-600/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-gradient-to-r from-cyan-400/10 to-blue-600/10 rounded-full blur-3xl animate-pulse delay-500"></div>
+      </div>
+
       <Header />
 
-      {/* Detailed Overview Section */}
-      <section className="bg-muted px-4 py-8 mb-6 border-b">
-        <div className="container mx-auto max-w-3xl text-center">
-          <h2 className="text-2xl md:text-3xl font-bold mb-2 text-primary">
-            Advanced API Generation & Testing Platform
-          </h2>
-          <p className="text-base md:text-lg text-muted-foreground leading-relaxed">
-            Welcome to your one-stop solution for transforming website data into powerful APIs for business intelligence and automation.
-            <br /><br />
-            <b>How it works:</b> Instantly generate structured API endpoints from any website URL and receive a secure API key. Use our intelligent platform to query, test, and analyze the generated endpoints with customizable parameters, sorting, and filtering—no manual backend coding required! 
-            <br /><br />
-            <b>Key Benefits:</b>
-            <ul className="list-disc text-left mx-auto max-w-xl mt-2 mb-0 pl-8 text-base text-muted-foreground">
-              <li>🔑 <b>API Maker:</b> Generate unique API keys for each website, unlocking secure access to real-time web data.</li>
-              <li>🧠 <b>Intelligent Query Engine:</b> Easily test, sort, and filter data using a modern and user-friendly interface.</li>
-              <li>📈 <b>Business-Ready:</b> Empower your applications, automate workflows, and enhance analytics with reliable API endpoints tailored for any business need.</li>
-              <li>🤖 <b>No-Code & Secure:</b> Forget about complex backend logic or scraping scripts—our system handles everything with enterprise-grade security.</li>
-            </ul>
+      {/* Hero Section with Enhanced Design */}
+      <section className="relative bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-indigo-600/10 px-4 py-16 mb-8 border-b backdrop-blur-sm">
+        <div className="container mx-auto max-w-4xl text-center relative z-10">
+          <div className="flex items-center justify-center gap-2 mb-6 animate-fade-in">
+            <Sparkles className="h-8 w-8 text-yellow-500 animate-pulse" />
+            <h2 className="text-3xl md:text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Advanced API Generation Platform
+            </h2>
+            <Zap className="h-8 w-8 text-blue-500 animate-pulse" />
+          </div>
+          
+          <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mb-8 animate-fade-in delay-200">
+            Transform any website into a powerful, intelligent API endpoint with our cutting-edge platform.
             <br />
-            <b>Get started by generating your API below. Perfect for analysts, developers, and business teams seeking advanced, intelligent data integration.</b>
+            <span className="font-semibold text-foreground">No coding required. Enterprise-grade security included.</span>
           </p>
+
+          {/* Feature Cards */}
+          <div className="grid md:grid-cols-3 gap-6 mt-12 animate-fade-in delay-400">
+            <div className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border hover:scale-105 transition-all duration-300 hover:shadow-xl">
+              <Globe className="h-12 w-12 text-blue-500 mx-auto mb-4" />
+              <h3 className="font-bold text-lg mb-2">Universal Compatibility</h3>
+              <p className="text-sm text-muted-foreground">Works with any website, any data structure</p>
+            </div>
+            <div className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border hover:scale-105 transition-all duration-300 hover:shadow-xl">
+              <Shield className="h-12 w-12 text-green-500 mx-auto mb-4" />
+              <h3 className="font-bold text-lg mb-2">Enterprise Security</h3>
+              <p className="text-sm text-muted-foreground">Bank-grade encryption and access control</p>
+            </div>
+            <div className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm rounded-xl p-6 border hover:scale-105 transition-all duration-300 hover:shadow-xl">
+              <Zap className="h-12 w-12 text-purple-500 mx-auto mb-4" />
+              <h3 className="font-bold text-lg mb-2">Lightning Fast</h3>
+              <p className="text-sm text-muted-foreground">Sub-second response times guaranteed</p>
+            </div>
+          </div>
         </div>
       </section>
 
-      <header className="py-8">
-        <div className="container mx-auto">
-          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tighter mb-2 text-primary">
+      {/* Main Content */}
+      <header className="py-12 relative z-10">
+        <div className="container mx-auto text-center">
+          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tighter mb-4 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent animate-fade-in">
             API Maker
           </h1>
-          <p className="text-lg text-muted-foreground">
+          <p className="text-xl text-muted-foreground animate-fade-in delay-200">
             Enter a website URL to instantly generate a structured API endpoint.
           </p>
         </div>
       </header>
-      <main className="flex-grow container mx-auto px-4 py-8 flex flex-col items-center text-center">
-        <form onSubmit={handleGenerateApi} className="w-full max-w-xl flex items-center gap-2 mb-8">
-          <Input 
-            type="url"
-            placeholder="https://example.com"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            required
-            className="h-12 text-base border-2 focus:border-primary transition-colors"
-          />
+
+      <main className="flex-grow container mx-auto px-4 py-8 flex flex-col items-center text-center relative z-10">
+        <form onSubmit={handleGenerateApi} className="w-full max-w-2xl flex items-center gap-3 mb-12 animate-fade-in delay-400">
+          <div className="relative flex-1">
+            <Input 
+              type="url"
+              placeholder="https://example.com"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              required
+              className="h-14 text-lg border-2 focus:border-primary transition-all duration-300 bg-white/80 backdrop-blur-sm shadow-lg hover:shadow-xl pl-4"
+            />
+            <div className="absolute inset-0 rounded-md bg-gradient-to-r from-blue-500/20 to-purple-500/20 -z-10 blur"></div>
+          </div>
           <Button 
             type="submit" 
             size="lg" 
-            className="h-12 gap-2 bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-600/90 transition-all duration-300" 
+            className="h-14 px-8 gap-3 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 hover:from-blue-700 hover:via-purple-700 hover:to-indigo-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 text-white font-semibold" 
             disabled={isLoading}
           >
             {isLoading ? (
@@ -252,12 +279,12 @@ const Index = () => {
         </form>
 
         {!user && !isLoading && (
-          <div className="text-lg text-amber-600 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 p-6 rounded-xl mb-8 animate-in fade-in-50">
-            <div className="flex items-center gap-3">
-              <Shield className="h-6 w-6 text-amber-500" />
+          <div className="text-lg text-amber-600 bg-gradient-to-r from-amber-50/80 to-orange-50/80 backdrop-blur-sm border border-amber-200 p-8 rounded-2xl mb-12 animate-fade-in delay-600 hover:scale-105 transition-all duration-300 shadow-lg">
+            <div className="flex items-center gap-4">
+              <Shield className="h-8 w-8 text-amber-500" />
               <div>
-                <p className="font-semibold">Login required</p>
-                <p className="text-sm mt-1">
+                <p className="font-semibold text-xl">Authentication Required</p>
+                <p className="text-base mt-2">
                   Please <Link to="/auth" className="font-bold underline hover:text-amber-700 transition-colors">log in</Link> to save and manage your generated APIs.
                 </p>
               </div>
@@ -266,56 +293,70 @@ const Index = () => {
         )}
 
         {apiResult && (
-          <div className="w-full max-w-6xl text-left animate-in fade-in-50 duration-500">
+          <div className="w-full max-w-7xl text-left animate-fade-in duration-700">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="response">API Response</TabsTrigger>
-                <TabsTrigger value="query">Query Interface</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm">
+                <TabsTrigger value="response" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white transition-all duration-300">
+                  API Response
+                </TabsTrigger>
+                <TabsTrigger value="query" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white transition-all duration-300">
+                  Query Interface
+                </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="response" className="space-y-6">
+              <TabsContent value="response" className="space-y-6 mt-6">
                 {queryResult ? (
-                  <ApiResponseDisplay
-                    data={queryResult}
-                    endpoint={apiResult.endpoint}
-                    apiKey={apiResult.apiKey}
-                  />
+                  <div className="animate-fade-in">
+                    <ApiResponseDisplay
+                      data={queryResult}
+                      endpoint={apiResult.endpoint}
+                      apiKey={apiResult.apiKey}
+                    />
+                  </div>
                 ) : (
-                  <Card>
+                  <Card className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border-2 hover:shadow-xl transition-all duration-300">
                     <CardHeader>
-                      <CardTitle>API Generated</CardTitle>
+                      <CardTitle className="flex items-center gap-2">
+                        <Sparkles className="h-5 w-5 text-green-500" />
+                        API Generated Successfully!
+                      </CardTitle>
                       <CardDescription>Your API is ready! Use the Query Interface to test it.</CardDescription>
                     </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground">
-                        Endpoint: <code className="bg-muted px-2 py-1 rounded">{apiResult.endpoint}</code>
-                      </p>
-                      <p className="text-sm text-muted-foreground mt-2">
-                        API Key: <code className="bg-muted px-2 py-1 rounded">{apiResult.apiKey}</code>
-                      </p>
+                    <CardContent className="space-y-4">
+                      <div className="p-4 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950 dark:to-blue-950 rounded-lg border">
+                        <p className="text-sm font-medium text-muted-foreground mb-2">Endpoint:</p>
+                        <code className="bg-white dark:bg-slate-800 px-3 py-2 rounded border text-sm break-all">{apiResult.endpoint}</code>
+                      </div>
+                      <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950 dark:to-pink-950 rounded-lg border">
+                        <p className="text-sm font-medium text-muted-foreground mb-2">API Key:</p>
+                        <code className="bg-white dark:bg-slate-800 px-3 py-2 rounded border text-sm break-all">{apiResult.apiKey}</code>
+                      </div>
                     </CardContent>
                   </Card>
                 )}
               </TabsContent>
 
-              <TabsContent value="query" className="space-y-6">
-                <ApiQueryInterface
-                  endpoint={apiResult.endpoint}
-                  apiKey={apiResult.apiKey}
-                  onQuery={handleQuery}
-                  isLoading={isQuerying}
-                  availableFields={availableFields}
-                />
+              <TabsContent value="query" className="space-y-6 mt-6">
+                <div className="animate-fade-in">
+                  <ApiQueryInterface
+                    endpoint={apiResult.endpoint}
+                    apiKey={apiResult.apiKey}
+                    onQuery={handleQuery}
+                    isLoading={isQuerying}
+                    availableFields={availableFields}
+                  />
+                </div>
               </TabsContent>
             </Tabs>
           </div>
         )}
       </main>
-      <footer className="py-6 border-t">
+
+      <footer className="py-8 border-t bg-white/30 dark:bg-slate-900/30 backdrop-blur-sm relative z-10">
         <div className="container mx-auto text-center">
           <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
             <span>Built with</span>
-            <span className="text-red-500">♥</span>
+            <span className="text-red-500 animate-pulse">♥</span>
             <span>by Lovable &amp; Vivek</span>
           </div>
         </div>
