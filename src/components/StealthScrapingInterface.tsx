@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -50,56 +49,16 @@ interface StealthJob {
   api_key?: string;
 }
 
-interface SystemStats {
-  total: number;
-  pending: number;
-  processing: number;
-  completed: number;
-  failed: number;
-  available_profiles: number;
-  captcha_solver_configured: boolean;
-  stealth_features: string[];
-  intelligence_protocols: string[];
-}
-
 const StealthScrapingInterface: React.FC = () => {
   const [url, setUrl] = useState('');
   const [priority, setPriority] = useState('medium');
   const [scrapingIntent, setScrapingIntent] = useState('data_extraction');
   const [isLoading, setIsLoading] = useState(false);
   const [jobs, setJobs] = useState<StealthJob[]>([]);
-  const [systemStats, setSystemStats] = useState<SystemStats | null>(null);
   const [selectedJob, setSelectedJob] = useState<StealthJob | null>(null);
   const [showAdvancedLogger, setShowAdvancedLogger] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
-
-  const fetchSystemStats = async () => {
-    try {
-      console.log('🔍 Fetching military-grade system stats...');
-      const { data, error } = await supabase.functions.invoke('stealth-scraper', {
-        body: {},
-        headers: { 'Content-Type': 'application/json' }
-      });
-
-      console.log('📊 Military system stats response:', data);
-
-      if (error) {
-        console.error('❌ Error fetching system stats:', error);
-        throw error;
-      }
-      
-      setSystemStats(data);
-      console.log('✅ Military system stats updated successfully');
-    } catch (error: any) {
-      console.error('💥 Failed to fetch system stats:', error);
-      toast({
-        title: "Error",
-        description: `Failed to fetch system stats: ${error.message}`,
-        variant: "destructive",
-      });
-    }
-  };
 
   const generateApiFromScrapeResult = async (scrapeResult: any) => {
     if (!user) {
@@ -157,9 +116,9 @@ const StealthScrapingInterface: React.FC = () => {
       }
 
       const newJob: StealthJob = {
-        job_id: data.job_id,
-        url: data.url,
-        priority: data.priority,
+        job_id: data.batch_job_id || data.job_id || `mil-${Date.now()}`,
+        url: data.target_url || url,
+        priority: data.priority || priority,
         status: 'pending',
         created_at: new Date().toISOString()
       };
@@ -169,10 +128,9 @@ const StealthScrapingInterface: React.FC = () => {
       
       toast({
         title: "Military-Grade Job Enqueued",
-        description: `Stealth scraping operation queued for ${data.url}`,
+        description: `Stealth scraping operation queued for ${newJob.url}`,
       });
 
-      await fetchSystemStats();
     } catch (error: any) {
       console.error('💥 Failed to enqueue stealth job:', error);
       toast({
@@ -215,30 +173,40 @@ const StealthScrapingInterface: React.FC = () => {
         throw error;
       }
 
-      // Validate the response structure
-      if (!data || !data.url || !data.structured_data) {
+      // Check if response is actually system status instead of scrape results
+      if (data && data.operational_status) {
+        console.error('❌ Received system status instead of scrape results:', data);
+        throw new Error('Backend returned system status instead of scrape results. Please check the stealth-scraper function.');
+      }
+
+      // Validate the response structure for actual scrape results
+      if (!data || !data.operation_id) {
         console.error('❌ Invalid scrape response structure:', data);
-        throw new Error('Invalid response from military stealth scraper');
+        throw new Error('Invalid response from military stealth scraper - missing operation data');
       }
 
       // Generate API for the scraped data if user is logged in
       let apiData = null;
-      if (user) {
+      if (user && data.extraction_results) {
         console.log('👤 User logged in, generating API...');
-        apiData = await generateApiFromScrapeResult(data);
+        apiData = await generateApiFromScrapeResult({ url, ...data.extraction_results });
       }
 
       const newJob: StealthJob = {
-        job_id: `military-${Date.now()}`,
-        url: data.url,
+        job_id: data.operation_id,
+        url: url,
         priority: 'high',
         status: 'completed',
-        profile_used: data.metadata?.profile_used || 'Military-Grade',
-        captcha_encountered: data.metadata?.captcha_encountered || false,
+        profile_used: 'Military-Grade',
+        captcha_encountered: data.security_analysis?.evasion_techniques_used?.includes('captcha-solver') || false,
         created_at: new Date().toISOString(),
-        structured_data: data.structured_data,
-        html: data.html,
-        metadata: data.metadata,
+        structured_data: data.extraction_results?.structured_content || data.extraction_results?.processed_data,
+        html: data.extraction_results?.raw_data,
+        metadata: {
+          ...data.operational_metrics,
+          security_analysis: data.security_analysis,
+          military_features: data.military_grade_features
+        },
         api_endpoint: apiData?.api_endpoint,
         api_key: apiData?.api_key
       };
@@ -250,8 +218,8 @@ const StealthScrapingInterface: React.FC = () => {
       console.log(`✅ Military-grade stealth scrape completed successfully`);
       
       const message = apiData 
-        ? `Successfully scraped ${data.url} with Military-Grade stealth and saved API to dashboard`
-        : `Successfully scraped ${data.url} using Military-Grade stealth protocols`;
+        ? `Successfully scraped ${url} with Military-Grade stealth and saved API to dashboard`
+        : `Successfully scraped ${url} using Military-Grade stealth protocols`;
       
       toast({
         title: "🎖️ Military Stealth Scrape Complete",
@@ -269,11 +237,6 @@ const StealthScrapingInterface: React.FC = () => {
       setTimeout(() => setShowAdvancedLogger(false), 3000);
     }
   };
-
-  React.useEffect(() => {
-    console.log('🎯 Military component mounted, fetching system stats...');
-    fetchSystemStats();
-  }, []);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -294,59 +257,6 @@ const StealthScrapingInterface: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Enhanced Military System Status Overview */}
-      {systemStats && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="border-2 border-primary/20 bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Atom className="h-5 w-5 text-purple-500 animate-pulse" />
-                <div>
-                  <div className="font-semibold">Military-Grade</div>
-                  <div className="text-sm text-muted-foreground">Stealth Protocols</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-2 border-amber-200 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Crown className="h-5 w-5 text-amber-500" />
-                <div>
-                  <div className="font-semibold">98-99%</div>
-                  <div className="text-sm text-muted-foreground">Success Rate</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Brain className="h-5 w-5 text-green-500" />
-                <div>
-                  <div className="font-semibold">Intelligence 5</div>
-                  <div className="text-sm text-muted-foreground">AI Protocols</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Shield className="h-5 w-5 text-red-500" />
-                <div>
-                  <div className="font-semibold">{systemStats.captcha_solver_configured ? 'Active' : 'Standby'}</div>
-                  <div className="text-sm text-muted-foreground">Zero-Footprint</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
       {/* Enhanced Military-Grade Logger */}
       {showAdvancedLogger && (
         <div className="w-full animate-in fade-in-50 duration-500">
@@ -446,7 +356,7 @@ const StealthScrapingInterface: React.FC = () => {
                     <li>• 🛡️ Advanced Anti-Fingerprinting & Sophisticated CAPTCHA Solutions</li>
                     <li>• 🎯 Multi-Vector Intelligence Extraction (15+ data types)</li>
                     <li>• 👻 Legal Compliance Integration & Banking-Grade Security</li>
-                    <li className="text-amber-600 dark:text-amber-400 font-semibold">• 🏆 Intelligence Level 5: Maximum Stealth Capability</li>
+                    <li className="text-amber-600 dark:text-amber-400 font-semibold">• 🏆 Maximum Stealth Capability</li>
                   </ul>
                   {user && (
                     <p className="text-green-600 dark:text-green-400 font-medium">
@@ -614,8 +524,8 @@ const StealthScrapingInterface: React.FC = () => {
                         <p><strong>Priority:</strong> {selectedJob.priority}</p>
                         <p><strong>Deployed:</strong> {new Date(selectedJob.created_at).toLocaleString()}</p>
                         <p><strong>Stealth Profile:</strong> {selectedJob.profile_used || 'Military-Grade'}</p>
-                        {selectedJob.metadata?.content_length && (
-                          <p><strong>Data Extracted:</strong> {selectedJob.metadata.content_length.toLocaleString()} characters</p>
+                        {selectedJob.metadata?.stealth_score && (
+                          <p><strong>Stealth Score:</strong> {(selectedJob.metadata.stealth_score * 100).toFixed(1)}%</p>
                         )}
                       </div>
                     </div>
@@ -627,39 +537,12 @@ const StealthScrapingInterface: React.FC = () => {
                       </h4>
                       <div className="text-sm space-y-1">
                         <p><strong>Anti-Detection:</strong> ✓ Military-Grade</p>
-                        <p><strong>AI Behavior:</strong> ✓ Intelligence Level 5</p>
+                        <p><strong>AI Behavior:</strong> ✓ Maximum Level</p>
                         <p><strong>CAPTCHA Status:</strong> {selectedJob.captcha_encountered ? '⚠️ Encountered & Solved' : '✓ None Detected'}</p>
                         <p><strong>Zero-Footprint:</strong> ✓ Confirmed</p>
                       </div>
                     </div>
                   </div>
-
-                  {selectedJob.metadata?.extraction_summary && (
-                    <div>
-                      <h4 className="font-medium mb-2 flex items-center gap-2">
-                        <BarChart3 className="h-4 w-4" />
-                        Intelligence Summary
-                      </h4>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                        <div className="text-center p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                          <div className="font-semibold text-lg">{selectedJob.metadata.extraction_summary.quotes_found || 0}</div>
-                          <div className="text-muted-foreground">Quotes</div>
-                        </div>
-                        <div className="text-center p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                          <div className="font-semibold text-lg">{selectedJob.metadata.extraction_summary.articles_found || 0}</div>
-                          <div className="text-muted-foreground">Articles</div>
-                        </div>
-                        <div className="text-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                          <div className="font-semibold text-lg">{selectedJob.metadata.extraction_summary.links_found || 0}</div>
-                          <div className="text-muted-foreground">Links</div>
-                        </div>
-                        <div className="text-center p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg">
-                          <div className="font-semibold text-lg">{selectedJob.metadata.extraction_summary.images_found || 0}</div>
-                          <div className="text-muted-foreground">Images</div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </CardContent>
               </Card>
             </div>

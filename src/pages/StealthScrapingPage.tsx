@@ -2,7 +2,6 @@
 import React from 'react';
 import Header from '@/components/Header';
 import StealthScrapingInterface from '@/components/StealthScrapingInterface';
-import EnhancedStatusDashboard from '@/components/EnhancedStatusDashboard';
 import { useAuth } from '@/contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { Shield, Crown, Zap, Brain, Atom, Target } from 'lucide-react';
@@ -27,7 +26,7 @@ const StealthScrapingPage = () => {
                 🛡️ Military-Grade Stealth Engine
               </h1>
               <p className="text-xl text-muted-foreground mb-8">
-                Intelligence Level 5: Advanced military-grade stealth scraping with quantum protocols, 
+                Advanced military-grade stealth scraping with quantum protocols, 
                 AI behavior simulation, and zero-footprint architecture for maximum data extraction.
               </p>
             </div>
@@ -104,16 +103,11 @@ const StealthScrapingPage = () => {
                 🛡️ Military-Grade Stealth Engine
               </h1>
               <p className="text-xl text-muted-foreground mt-2">
-                Intelligence Level 5: Advanced military-grade stealth scraping with quantum protocols, 
+                Advanced military-grade stealth scraping with quantum protocols, 
                 AI behavior simulation, and zero-footprint architecture for maximum data extraction.
               </p>
             </div>
           </div>
-        </div>
-
-        {/* Enhanced Status Dashboard */}
-        <div className="mb-8">
-          <EnhancedStatusDashboard />
         </div>
         
         <StealthScrapingInterface />

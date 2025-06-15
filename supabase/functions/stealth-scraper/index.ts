@@ -8,17 +8,16 @@ import { IntelligenceOrchestrator } from './intelligence-orchestrator.ts';
 interface MilitaryGradeScrapeRequest {
   action: string;
   url: string;
-  intelligence_level?: 1 | 2 | 3 | 4 | 5; // 5 being military grade
   extraction_profile?: 'comprehensive' | 'targeted' | 'stealth' | 'aggressive';
   data_types?: string[];
   anti_detection_mode?: 'passive' | 'active' | 'adaptive' | 'ghost';
   priority?: 'low' | 'medium' | 'high' | 'critical';
+  scraping_intent?: string;
   request_id?: string;
 }
 
 interface MilitaryGradeResponse {
   operation_id: string;
-  intelligence_level: number;
   extraction_results: {
     raw_data: any;
     processed_data: any;
@@ -60,7 +59,6 @@ serve(async (req) => {
   try {
     console.log(`🎯 [${operationId}] Military-Grade Scraping Operation Initiated`);
     console.log(`📡 [${operationId}] Request Method: ${req.method}`);
-    console.log(`🌐 [${operationId}] Request URL: ${req.url}`);
 
     // Handle GET requests - return operational status
     if (req.method === 'GET') {
@@ -82,7 +80,10 @@ serve(async (req) => {
 
         if (!bodyText || bodyText.trim() === '') {
           console.log(`📊 [${operationId}] Empty payload - returning status`);
-          requestData = { action: 'status' };
+          const operationalStatus = await getOperationalIntelligence();
+          return new Response(JSON.stringify(operationalStatus), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
         } else {
           requestData = JSON.parse(bodyText);
           console.log(`✅ [${operationId}] Payload decoded successfully:`, requestData);
@@ -100,21 +101,11 @@ serve(async (req) => {
         });
       }
 
-      // Handle status action
-      if (!requestData.action || requestData.action === 'status') {
-        console.log(`📊 [${operationId}] Status action - returning operational intelligence`);
-        const operationalStatus = await getOperationalIntelligence();
-        return new Response(JSON.stringify(operationalStatus), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-
-      const { action, url, intelligence_level, extraction_profile, anti_detection_mode } = requestData;
+      const { action, url, extraction_profile, anti_detection_mode } = requestData;
       
       console.log(`🔍 [${operationId}] Operation parameters:`, { 
         action, 
         url, 
-        intelligence_level: intelligence_level || 5,
         extraction_profile: extraction_profile || 'comprehensive',
         anti_detection_mode: anti_detection_mode || 'ghost'
       });
@@ -137,15 +128,10 @@ serve(async (req) => {
           });
         }
         
-        // Initialize military-grade intelligence level
-        const level = Math.max(1, Math.min(5, intelligence_level || 5)) as 1 | 2 | 3 | 4 | 5;
-        console.log(`🛡️ [${operationId}] Intelligence Level: ${level} (Military-Grade)`);
-        
         try {
           console.log(`🚀 [${operationId}] Initiating military-grade extraction protocol...`);
           const operationResult = await executeMilitaryGradeOperation(
             url, 
-            level, 
             extraction_profile || 'comprehensive',
             anti_detection_mode || 'ghost',
             operationId
@@ -158,7 +144,6 @@ serve(async (req) => {
           // Return comprehensive military-grade response
           const response: MilitaryGradeResponse = {
             operation_id: operationId,
-            intelligence_level: level,
             extraction_results: {
               raw_data: operationResult.raw_extraction || [],
               processed_data: operationResult.processed_data || {},
@@ -205,7 +190,6 @@ serve(async (req) => {
             error: `Military-grade operation failed: ${operationError.message}`,
             operation_id: operationId,
             target_url: url,
-            intelligence_level: level,
             timestamp: new Date().toISOString()
           }), {
             status: 500,
@@ -293,18 +277,17 @@ function isValidOperationalTarget(target: string): boolean {
 
 async function executeMilitaryGradeOperation(
   url: string, 
-  intelligenceLevel: 1 | 2 | 3 | 4 | 5, 
   extractionProfile: string,
   antiDetectionMode: string,
   operationId: string
 ): Promise<any> {
-  console.log(`⚔️ [${operationId}] Executing Level ${intelligenceLevel} Military-Grade Operation`);
+  console.log(`⚔️ [${operationId}] Executing Military-Grade Operation`);
   console.log(`🎯 [${operationId}] Target: ${url}`);
   console.log(`📊 [${operationId}] Profile: ${extractionProfile}, Detection Mode: ${antiDetectionMode}`);
   
   try {
     // Initialize military-grade scraping engine
-    const scrapingEngine = new MilitaryGradeScrapingEngine(intelligenceLevel, antiDetectionMode);
+    const scrapingEngine = new MilitaryGradeScrapingEngine(5, antiDetectionMode);
     const dataExtractor = new AdvancedDataExtractor(extractionProfile);
     const orchestrator = new IntelligenceOrchestrator();
     
@@ -314,7 +297,7 @@ async function executeMilitaryGradeOperation(
     
     // Phase 2: Operational Planning
     console.log(`📋 [${operationId}] Phase 2: Operational Planning`);
-    const operationalPlan = await orchestrator.createOperationalPlan(targetIntel, intelligenceLevel);
+    const operationalPlan = await orchestrator.createOperationalPlan(targetIntel, 5);
     
     // Phase 3: Advanced Stealth Deployment
     console.log(`🥷 [${operationId}] Phase 3: Advanced Stealth Deployment`);
@@ -365,13 +348,6 @@ async function getOperationalIntelligence(): Promise<any> {
   
   return {
     operational_status: 'fully_operational',
-    intelligence_levels: {
-      level_1: { name: 'Basic Reconnaissance', success_rate: '70-75%', stealth_rating: 'low' },
-      level_2: { name: 'Advanced Surveillance', success_rate: '80-85%', stealth_rating: 'medium' },
-      level_3: { name: 'Tactical Operations', success_rate: '90-95%', stealth_rating: 'high' },
-      level_4: { name: 'Strategic Intelligence', success_rate: '96-98%', stealth_rating: 'very_high' },
-      level_5: { name: 'Military-Grade Operations', success_rate: '98-99.5%', stealth_rating: 'maximum' }
-    },
     military_grade_capabilities: {
       zero_footprint_architecture: true,
       advanced_ai_behavior_simulation: true,
