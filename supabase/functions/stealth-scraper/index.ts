@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 import { MilitaryGradeScrapingEngine } from './military-grade-engine.ts';
@@ -55,12 +54,12 @@ serve(async (req) => {
 
   const operationId = crypto.randomUUID();
   const startTime = Date.now();
-  
+
   try {
     console.log(`🎯 [${operationId}] Military-Grade Scraping Operation Initiated`);
     console.log(`📡 [${operationId}] Request Method: ${req.method}`);
 
-    // Handle GET requests - return operational status
+    // Handle GET requests for operational status
     if (req.method === 'GET') {
       console.log(`📊 [${operationId}] Status request - returning operational intelligence`);
       const operationalStatus = await getOperationalIntelligence();
@@ -69,54 +68,53 @@ serve(async (req) => {
       });
     }
 
-    // Handle POST requests - execute military-grade operations
+    // Handle POST requests for scrape/enqueue
     if (req.method === 'POST') {
-      console.log(`⚔️ [${operationId}] Military operation request received`);
-      
-      let requestData: MilitaryGradeScrapeRequest;
+      let bodyText: string | undefined;
       try {
-        const bodyText = await req.text();
-        console.log(`📥 [${operationId}] Request payload:`, bodyText);
-
-        if (!bodyText || bodyText.trim() === '') {
-          console.log(`📊 [${operationId}] Empty payload - returning status`);
-          const operationalStatus = await getOperationalIntelligence();
-          return new Response(JSON.stringify(operationalStatus), {
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          });
-        } else {
-          requestData = JSON.parse(bodyText);
-          console.log(`✅ [${operationId}] Payload decoded successfully:`, requestData);
-        }
+        bodyText = await req.text();
       } catch (parseError) {
-        console.error(`❌ [${operationId}] Payload decode error:`, parseError);
         return new Response(JSON.stringify({
-          error: 'Invalid operation payload',
+          error: 'Failed to decode request payload',
           operation_id: operationId,
-          details: parseError.message,
+          details: parseError instanceof Error ? parseError.message : String(parseError),
           timestamp: new Date().toISOString()
         }), {
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
 
-      const { action, url, extraction_profile, anti_detection_mode } = requestData;
-      
-      console.log(`🔍 [${operationId}] Operation parameters:`, { 
-        action, 
-        url, 
-        extraction_profile: extraction_profile || 'comprehensive',
-        anti_detection_mode: anti_detection_mode || 'ghost'
-      });
+      // Return status ONLY if body is absent or blank
+      if (!bodyText || bodyText.trim() === '') {
+        const operationalStatus = await getOperationalIntelligence();
+        return new Response(JSON.stringify(operationalStatus), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
 
-      // Execute military-grade scraping operation
+      // At this point, bodyText is not empty: parse and validate
+      let requestData: MilitaryGradeScrapeRequest;
+      try {
+        requestData = JSON.parse(bodyText);
+      } catch (parseError) {
+        return new Response(JSON.stringify({
+          error: 'Invalid operation payload (JSON parse failed)',
+          operation_id: operationId,
+          details: parseError instanceof Error ? parseError.message : String(parseError),
+          timestamp: new Date().toISOString()
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Validate action and url for "scrape" requests
+      const { action, url, extraction_profile, anti_detection_mode } = requestData;
+
       if (action === 'scrape') {
-        console.log(`⚔️ [${operationId}] MILITARY-GRADE SCRAPING OPERATION CONFIRMED`);
-        console.log(`🎯 [${operationId}] Target URL: ${url}`);
-        
+        // If no valid url -> error, otherwise process as scrape
         if (!url || !isValidOperationalTarget(url)) {
-          console.error(`❌ [${operationId}] Invalid operational target: ${url}`);
           return new Response(JSON.stringify({
             error: 'Invalid operational target URL',
             operation_id: operationId,
@@ -124,24 +122,19 @@ serve(async (req) => {
             timestamp: new Date().toISOString()
           }), {
             status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           });
         }
-        
+        // Do military-grade scrape:
         try {
-          console.log(`🚀 [${operationId}] Initiating military-grade extraction protocol...`);
           const operationResult = await executeMilitaryGradeOperation(
-            url, 
+            url,
             extraction_profile || 'comprehensive',
             anti_detection_mode || 'ghost',
             operationId
           );
-          
-          console.log(`✅ [${operationId}] Military-grade operation completed successfully`);
-          
           const operationDuration = Date.now() - startTime;
-          
-          // Return comprehensive military-grade response
+
           const response: MilitaryGradeResponse = {
             operation_id: operationId,
             extraction_results: {
@@ -177,15 +170,12 @@ serve(async (req) => {
               extraction_vectors: operationResult.extraction_vectors || []
             }
           };
-          
-          console.log(`📤 [${operationId}] Returning comprehensive operation results`);
-          
+
           return new Response(JSON.stringify(response), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           });
-          
-        } catch (operationError) {
-          console.error(`❌ [${operationId}] Military operation failed:`, operationError);
+
+        } catch (operationError: any) {
           return new Response(JSON.stringify({
             error: `Military-grade operation failed: ${operationError.message}`,
             operation_id: operationId,
@@ -193,15 +183,13 @@ serve(async (req) => {
             timestamp: new Date().toISOString()
           }), {
             status: 500,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           });
         }
       }
 
       // Handle enqueue action for batch operations
       if (action === 'enqueue') {
-        console.log(`📋 [${operationId}] BATCH OPERATION ENQUEUE`);
-        
         if (!url || !isValidOperationalTarget(url)) {
           return new Response(JSON.stringify({
             error: 'Invalid operational target for batch processing',
@@ -210,10 +198,9 @@ serve(async (req) => {
             timestamp: new Date().toISOString()
           }), {
             status: 400,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
           });
         }
-
         const batchJobId = await enqueueMilitaryOperation(url, requestData.priority || 'medium', operationId);
         return new Response(JSON.stringify({
           batch_job_id: batchJobId,
@@ -223,12 +210,11 @@ serve(async (req) => {
           status: 'queued_for_military_processing',
           timestamp: new Date().toISOString()
         }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         });
       }
 
-      // Invalid action
-      console.log(`❌ [${operationId}] Unknown operation: "${action}"`);
+      // Unknown/invalid action handling
       return new Response(JSON.stringify({
         error: `Invalid military operation '${action}'`,
         supported_operations: ['scrape', 'enqueue'],
@@ -237,12 +223,11 @@ serve(async (req) => {
         timestamp: new Date().toISOString()
       }), {
         status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
 
-    // Unsupported method
-    console.log(`❌ [${operationId}] Unsupported method: ${req.method}`);
+    // Method not allowed
     return new Response(JSON.stringify({
       error: `Method ${req.method} not supported`,
       allowed_methods: ['GET', 'POST'],
@@ -250,18 +235,17 @@ serve(async (req) => {
       timestamp: new Date().toISOString()
     }), {
       status: 405,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
-  } catch (error) {
-    console.error(`❌ [${operationId}] Critical operation failure:`, error);
+  } catch (error: any) {
     return new Response(JSON.stringify({
       error: `Critical military operation failure: ${error.message}`,
       operation_id: operationId,
       timestamp: new Date().toISOString()
     }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }
 });
