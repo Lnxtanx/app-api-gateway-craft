@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 import { handleScrape, handleEnqueue } from './handlers.ts';
@@ -23,11 +22,22 @@ serve(async (req) => {
 
     if (req.method === 'POST') {
       let requestData: any;
+      let bodyText: string | undefined;
       try {
-        requestData = await parseRequestBody(req, operationId);
+        bodyText = await req.text();
+        console.log(`[DEBUG] Raw POST body:`, bodyText);
+        if (!bodyText || bodyText.trim() === '' || bodyText.trim() === '{}' || bodyText.trim() === 'null') {
+          return logAndRespondError(operationId, "Missing or empty request body in POST.", 400);
+        }
+        requestData = JSON.parse(bodyText);
+        if (!requestData || typeof requestData !== 'object') {
+          return logAndRespondError(operationId, "POST body did not resolve to a valid object", 400, bodyText);
+        }
       } catch (parseError: any) {
-        return logAndRespondError(operationId, parseError.err || 'Bad POST body', 400, parseError.details);
+        return logAndRespondError(operationId, 'Bad POST body: failed to parse JSON', 400, { error: parseError, raw: bodyText });
       }
+
+      console.log(`[DEBUG] Parsed body keys:`, Object.keys(requestData));
 
       const action = requestData.action;
       if (!action) {
