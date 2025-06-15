@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -53,11 +52,13 @@ interface SystemStats {
   available_profiles: number;
   captcha_solver_configured: boolean;
   stealth_features: string[];
+  stealth_levels: { level: number, success_rate: number, features: string[] }[];
 }
 
 const StealthScrapingInterface: React.FC = () => {
   const [url, setUrl] = useState('');
   const [priority, setPriority] = useState('medium');
+  const [stealthLevel, setStealthLevel] = useState<1 | 2>(1);
   const [isLoading, setIsLoading] = useState(false);
   const [jobs, setJobs] = useState<StealthJob[]>([]);
   const [systemStats, setSystemStats] = useState<SystemStats | null>(null);
@@ -188,13 +189,13 @@ const StealthScrapingInterface: React.FC = () => {
 
     setIsLoading(true);
     try {
-      console.log('🚀 Starting direct scrape for URL:', url);
+      console.log(`🚀 Starting Level ${stealthLevel} direct scrape for URL:`, url);
       const { data, error } = await supabase.functions.invoke('stealth-scraper', {
-        body: { action: 'scrape', url },
+        body: { action: 'scrape', url, stealth_level: stealthLevel },
         headers: { 'Content-Type': 'application/json' }
       });
 
-      console.log('🚀 Direct scrape response:', data);
+      console.log(`🚀 Level ${stealthLevel} scrape response:`, data);
 
       if (error) {
         console.error('❌ Error in direct scrape:', error);
@@ -233,11 +234,11 @@ const StealthScrapingInterface: React.FC = () => {
       setSelectedJob(newJob);
       setUrl('');
       
-      console.log('✅ Direct scrape completed successfully');
+      console.log(`✅ Level ${stealthLevel} direct scrape completed successfully`);
       
       const message = apiData 
-        ? `Successfully scraped ${data.url} and saved API to dashboard`
-        : `Successfully scraped ${data.url} using ${data.metadata?.profile_used || 'stealth profile'}`;
+        ? `Successfully scraped ${data.url} with Level ${stealthLevel} stealth and saved API to dashboard`
+        : `Successfully scraped ${data.url} using Level ${stealthLevel} stealth (${data.metadata?.profile_used || 'stealth profile'})`;
       
       toast({
         title: "Stealth Scrape Complete",
@@ -247,7 +248,7 @@ const StealthScrapingInterface: React.FC = () => {
       console.error('💥 Direct scraping failed:', error);
       toast({
         title: "Scraping Failed",
-        description: `Scraping failed: ${error.message}`,
+        description: `Level ${stealthLevel} scraping failed: ${error.message}`,
         variant: "destructive",
       });
     } finally {
@@ -299,8 +300,8 @@ const StealthScrapingInterface: React.FC = () => {
               <div className="flex items-center gap-2">
                 <BarChart3 className="h-5 w-5 text-blue-500" />
                 <div>
-                  <div className="font-semibold">{systemStats.total}</div>
-                  <div className="text-sm text-muted-foreground">Total Jobs</div>
+                  <div className="font-semibold">Level 1 & 2</div>
+                  <div className="text-sm text-muted-foreground">Stealth Levels</div>
                 </div>
               </div>
             </CardContent>
@@ -311,8 +312,8 @@ const StealthScrapingInterface: React.FC = () => {
               <div className="flex items-center gap-2">
                 <Clock className="h-5 w-5 text-orange-500" />
                 <div>
-                  <div className="font-semibold">{systemStats.pending}</div>
-                  <div className="text-sm text-muted-foreground">Pending</div>
+                  <div className="font-semibold">60-85%</div>
+                  <div className="text-sm text-muted-foreground">Success Rate</div>
                 </div>
               </div>
             </CardContent>
@@ -332,35 +333,43 @@ const StealthScrapingInterface: React.FC = () => {
         </div>
       )}
 
-      {/* Stealth Features Overview */}
-      {systemStats && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Brain className="h-5 w-5" />
-              Level 4 Intelligence Features
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              {systemStats.stealth_features.map((feature, index) => (
-                <Badge key={index} variant="outline" className="justify-start">
-                  <Zap className="h-3 w-3 mr-1" />
-                  {feature}
-                </Badge>
-              ))}
-            </div>
-            
-            {systemStats.captcha_solver_configured && (
-              <Alert className="mt-4">
-                <Shield className="h-4 w-4" />
-                <AlertDescription>
-                  CAPTCHA solver is configured and ready for advanced anti-detection.
-                </AlertDescription>
-              </Alert>
-            )}
-          </CardContent>
-        </Card>
+      {/* Stealth Levels Overview */}
+      {systemStats && systemStats.stealth_levels && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5 text-blue-500" />
+                Level 1: Basic Stealth
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="text-2xl font-bold text-blue-600">60-70% Success</div>
+                <div className="text-sm text-muted-foreground">
+                  User Agent Rotation, Header Normalization, Basic Rate Limiting, Simple Proxy Usage
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Brain className="h-5 w-5 text-purple-500" />
+                Level 2: Intermediate Stealth
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <div className="text-2xl font-bold text-purple-600">80-85% Success</div>
+                <div className="text-sm text-muted-foreground">
+                  Fingerprint Masking, Session Management, Residential Proxies, Content-Aware Delays
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       )}
 
       <Tabs defaultValue="scrape" className="w-full">
@@ -399,13 +408,25 @@ const StealthScrapingInterface: React.FC = () => {
               </div>
 
               <div className="flex gap-2">
+                <Select value={stealthLevel.toString()} onValueChange={(value) => setStealthLevel(parseInt(value) as 1 | 2)}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1">Level 1: Basic (60-70%)</SelectItem>
+                    <SelectItem value="2">Level 2: Intermediate (80-85%)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex gap-2">
                 <Button 
                   onClick={runDirectScrape} 
                   disabled={!url || isLoading}
                   className="flex items-center gap-2"
                 >
                   {isLoading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-                  Direct Scrape
+                  Direct Scrape (Level {stealthLevel})
                 </Button>
                 
                 <Button 
@@ -420,8 +441,22 @@ const StealthScrapingInterface: React.FC = () => {
               </div>
 
               <div className="text-sm text-muted-foreground space-y-1">
-                <p><strong>Direct Scrape:</strong> Immediate stealth scraping with random profile</p>
-                <p><strong>Queue Job:</strong> Add to distributed job queue for processing</p>
+                <p><strong>Level {stealthLevel} Features:</strong></p>
+                {stealthLevel === 1 && (
+                  <ul className="ml-4 space-y-1">
+                    <li>• User Agent Rotation & Header Normalization</li>
+                    <li>• Basic Rate Limiting & Simple Proxy Usage</li>
+                    <li>• Human Behavior Simulation</li>
+                  </ul>
+                )}
+                {stealthLevel === 2 && (
+                  <ul className="ml-4 space-y-1">
+                    <li>• All Level 1 features + Advanced enhancements</li>
+                    <li>• Browser Fingerprint Masking & Session Management</li>
+                    <li>• Residential Proxy Networks & Content-Aware Delays</li>
+                    <li>• Enhanced Human Behavior Patterns</li>
+                  </ul>
+                )}
                 {user && (
                   <p className="text-green-600"><strong>✓ Logged in:</strong> Results will be saved to your dashboard</p>
                 )}

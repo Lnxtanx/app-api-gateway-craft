@@ -1,3 +1,4 @@
+
 import puppeteer, { Browser, Page } from 'https://deno.land/x/puppeteer@16.2.0/mod.ts';
 import { StealthProfile } from './types.ts';
 import { BrowserFingerprintManager } from './browser-fingerprint-manager.ts';
@@ -6,9 +7,10 @@ import { AdvancedScrapingEngine } from './advanced-scraping-engine.ts';
 import { ProxyManager } from './proxy-manager.ts';
 import { RateLimiter } from './rate-limiter.ts';
 import { HeaderManager } from './header-manager.ts';
+import { Level2StealthController } from './level2-stealth-controller.ts';
 
 /**
- * Enhanced Stealth Browser Controller with Advanced Logical Scraping
+ * Enhanced Stealth Browser Controller with Level 1 & 2 Support
  */
 export class StealthBrowserController {
   private browser: Browser | null = null;
@@ -18,17 +20,30 @@ export class StealthBrowserController {
   private scrapingEngine: AdvancedScrapingEngine | null = null;
   private proxyManager: ProxyManager;
   private rateLimiter: RateLimiter;
+  private level2Controller: Level2StealthController | null = null;
   private currentUrl: string = '';
   private previousUrl: string = '';
+  private stealthLevel: 1 | 2 = 1;
 
-  constructor(profile?: StealthProfile) {
+  constructor(profile?: StealthProfile, stealthLevel: 1 | 2 = 1) {
     this.profile = profile || BrowserFingerprintManager.getRandomProfile();
     this.proxyManager = new ProxyManager();
     this.rateLimiter = new RateLimiter();
+    this.stealthLevel = stealthLevel;
+    
+    if (stealthLevel === 2) {
+      this.level2Controller = new Level2StealthController(this.profile);
+    }
   }
 
   async initialize(): Promise<void> {
-    console.log(`🚀 Initializing Level 1 stealth browser with profile: ${this.profile.name}`);
+    if (this.stealthLevel === 2 && this.level2Controller) {
+      console.log('🚀 Initializing Level 2 stealth browser...');
+      await this.level2Controller.initialize();
+      return;
+    }
+
+    console.log(`🚀 Initializing Level ${this.stealthLevel} stealth browser with profile: ${this.profile.name}`);
     
     // Get proxy for this session
     const proxy = this.proxyManager.getNextProxy();
@@ -178,9 +193,14 @@ export class StealthBrowserController {
   }
 
   async navigateWithStealth(url: string): Promise<void> {
+    if (this.stealthLevel === 2 && this.level2Controller) {
+      await this.level2Controller.navigateWithLevel2Stealth(url);
+      return;
+    }
+
     if (!this.page || !this.humanBehavior) throw new Error('Browser not initialized');
 
-    console.log(`🌐 Level 1 stealth navigation to ${url}...`);
+    console.log(`🌐 Level ${this.stealthLevel} stealth navigation to ${url}...`);
 
     // Check robots.txt compliance
     const robotsAllowed = await this.rateLimiter.respectRobotsTxt(url);
@@ -234,18 +254,27 @@ export class StealthBrowserController {
     const contentWait = Math.random() * 2000 + 2000; // 2-4s wait
     await new Promise(resolve => setTimeout(resolve, contentWait));
 
-    console.log('✅ Level 1 stealth navigation completed');
+    console.log(`✅ Level ${this.stealthLevel} stealth navigation completed`);
   }
 
   async getPageContent(): Promise<string> {
+    if (this.stealthLevel === 2 && this.level2Controller) {
+      // For Level 2, we don't expose raw page content
+      return 'Level 2 content access through structured extraction only';
+    }
+    
     if (!this.page) throw new Error('Page not initialized');
     return await this.page.content();
   }
 
   async extractStructuredData(): Promise<any> {
+    if (this.stealthLevel === 2 && this.level2Controller) {
+      return await this.level2Controller.extractDataWithLevel2Intelligence();
+    }
+
     if (!this.page || !this.scrapingEngine) throw new Error('Browser not initialized');
     
-    console.log('🧠 Starting advanced logical scraping flow...');
+    console.log(`🧠 Starting Level ${this.stealthLevel} logical scraping flow...`);
     
     try {
       const advancedResult = await this.scrapingEngine.executeLogicalFlow(this.page.url());
@@ -254,13 +283,13 @@ export class StealthBrowserController {
       return {
         ...basicResult,
         advanced: advancedResult,
-        extraction_method: 'level_1_stealth_scraping',
-        stealth_level: 1,
+        extraction_method: `level_${this.stealthLevel}_stealth_scraping`,
+        stealth_level: this.stealthLevel,
         confidence: advancedResult.enhancement?.confidence || 0.7
       };
       
     } catch (error) {
-      console.log('⚠️ Advanced extraction failed, falling back to basic extraction:', error);
+      console.log(`⚠️ Level ${this.stealthLevel} advanced extraction failed, falling back to basic extraction:`, error);
       return await this.performBasicExtraction();
     }
   }
@@ -358,7 +387,33 @@ export class StealthBrowserController {
     return this.profile;
   }
 
+  getStealthStats(): any {
+    if (this.stealthLevel === 2 && this.level2Controller) {
+      return this.level2Controller.getLevel2Stats();
+    }
+
+    return {
+      level: 1,
+      name: 'Basic Stealth',
+      features: {
+        user_agent_rotation: true,
+        header_normalization: true,
+        basic_rate_limiting: true,
+        simple_proxy_usage: true,
+        human_behavior_simulation: true
+      },
+      expected_success_rate: '60-70%',
+      profile_used: this.profile.name,
+      proxy_active: true
+    };
+  }
+
   async close(): Promise<void> {
+    if (this.stealthLevel === 2 && this.level2Controller) {
+      await this.level2Controller.close();
+      return;
+    }
+
     if (this.browser) {
       await this.browser.close();
     }
