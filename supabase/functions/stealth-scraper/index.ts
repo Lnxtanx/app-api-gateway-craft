@@ -282,63 +282,104 @@ class StealthBrowserController {
   async extractStructuredData(): Promise<any> {
     if (!this.page) throw new Error('Page not initialized');
     
+    console.log('Starting data extraction...');
+    
     return await this.page.evaluate(() => {
       const data: any = {};
       
-      data.title = document.title;
+      // Basic page information
+      data.title = document.title || 'No title found';
       
       const metaDescription = document.querySelector('meta[name="description"]');
-      data.description = metaDescription ? metaDescription.getAttribute('content') : '';
+      data.description = metaDescription ? metaDescription.getAttribute('content') || '' : '';
       
-      data.headings = Array.from(document.querySelectorAll('h1, h2, h3')).map(h => ({
+      // Extract headings
+      data.headings = Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, h6')).map(h => ({
         tag: h.tagName.toLowerCase(),
-        text: h.textContent?.trim()
-      }));
+        text: h.textContent?.trim() || ''
+      })).filter(h => h.text.length > 0).slice(0, 10);
       
-      data.links = Array.from(document.querySelectorAll('a[href]')).slice(0, 50).map(a => ({
-        href: a.getAttribute('href'),
-        text: a.textContent?.trim()
-      }));
+      // Extract links
+      data.links = Array.from(document.querySelectorAll('a[href]')).map(a => ({
+        href: a.getAttribute('href') || '',
+        text: a.textContent?.trim() || ''
+      })).filter(link => link.text.length > 0).slice(0, 20);
       
-      data.images = Array.from(document.querySelectorAll('img[src]')).slice(0, 20).map(img => ({
-        src: img.getAttribute('src'),
-        alt: img.getAttribute('alt')
-      }));
+      // Extract images
+      data.images = Array.from(document.querySelectorAll('img[src]')).map(img => ({
+        src: img.getAttribute('src') || '',
+        alt: img.getAttribute('alt') || ''
+      })).filter(img => img.src.length > 0).slice(0, 10);
 
       // Enhanced extraction for quotes.toscrape.com specifically
-      const quotes = Array.from(document.querySelectorAll('.quote')).map(quote => ({
-        text: quote.querySelector('.text')?.textContent?.trim() || '',
-        author: quote.querySelector('.author')?.textContent?.trim() || '',
-        tags: Array.from(quote.querySelectorAll('.tag')).map(tag => tag.textContent?.trim())
-      }));
+      const quotes = Array.from(document.querySelectorAll('.quote')).map(quote => {
+        const textEl = quote.querySelector('.text');
+        const authorEl = quote.querySelector('.author');
+        const tagEls = quote.querySelectorAll('.tag');
+        
+        return {
+          text: textEl?.textContent?.trim().replace(/[""]/g, '') || '',
+          author: authorEl?.textContent?.trim() || '',
+          tags: Array.from(tagEls).map(tag => tag.textContent?.trim() || '').filter(tag => tag.length > 0)
+        };
+      }).filter(quote => quote.text.length > 0);
 
       if (quotes.length > 0) {
         data.quotes = quotes;
+        console.log(`Found ${quotes.length} quotes`);
       }
 
-      // Generic structured data extraction
-      const articles = Array.from(document.querySelectorAll('article, .article, .post, .item')).slice(0, 20).map(article => ({
-        title: article.querySelector('h1, h2, h3, .title')?.textContent?.trim() || '',
-        content: article.querySelector('p, .content, .description')?.textContent?.trim() || '',
-        link: article.querySelector('a')?.getAttribute('href') || ''
-      }));
+      // Generic structured data extraction for articles/posts
+      const articles = Array.from(document.querySelectorAll('article, .article, .post, .item, .card')).map(article => {
+        const titleEl = article.querySelector('h1, h2, h3, h4, .title, .headline');
+        const contentEl = article.querySelector('p, .content, .description, .summary');
+        const linkEl = article.querySelector('a');
+        
+        return {
+          title: titleEl?.textContent?.trim() || '',
+          content: contentEl?.textContent?.trim() || '',
+          link: linkEl?.getAttribute('href') || ''
+        };
+      }).filter(article => article.title.length > 0 || article.content.length > 10).slice(0, 15);
 
       if (articles.length > 0) {
-        data.articles = articles.filter(article => article.title || article.content);
+        data.articles = articles;
       }
 
-      // Extract any list items
-      const listItems = Array.from(document.querySelectorAll('li')).slice(0, 30).map(li => ({
+      // Extract navigation items
+      const navItems = Array.from(document.querySelectorAll('nav a, .nav a, .menu a, .navigation a')).map(navLink => ({
+        text: navLink.textContent?.trim() || '',
+        href: navLink.getAttribute('href') || ''
+      })).filter(item => item.text.length > 0).slice(0, 10);
+
+      if (navItems.length > 0) {
+        data.navigation = navItems;
+      }
+
+      // Extract any structured lists
+      const listItems = Array.from(document.querySelectorAll('ul li, ol li')).map(li => ({
         text: li.textContent?.trim() || '',
         link: li.querySelector('a')?.getAttribute('href') || ''
-      }));
+      })).filter(item => item.text.length > 5 && item.text.length < 200).slice(0, 20);
 
       if (listItems.length > 0) {
-        data.listItems = listItems.filter(item => item.text && item.text.length > 10);
+        data.listItems = listItems;
       }
+
+      console.log('Data extraction completed:', {
+        title: data.title,
+        quotesFound: data.quotes?.length || 0,
+        articlesFound: data.articles?.length || 0,
+        linksFound: data.links?.length || 0,
+        imagesFound: data.images?.length || 0
+      });
       
       return data;
     });
+  }
+
+  getProfile(): StealthProfile {
+    return this.profile;
   }
 
   async close(): Promise<void> {
@@ -478,7 +519,14 @@ serve(async (req) => {
           
           await stealthBrowser.close();
 
-          console.log(`Scraping completed for ${targetUrl}. Extracted data:`, JSON.stringify(structuredData, null, 2));
+          console.log(`Scraping completed for ${targetUrl}. Profile used: ${profile.name}`);
+          console.log('Extracted data summary:', {
+            title: structuredData.title,
+            quotes: structuredData.quotes?.length || 0,
+            articles: structuredData.articles?.length || 0,
+            links: structuredData.links?.length || 0,
+            images: structuredData.images?.length || 0
+          });
           
           return new Response(JSON.stringify({
             url: targetUrl,
@@ -493,7 +541,9 @@ serve(async (req) => {
                 quotes_found: structuredData.quotes?.length || 0,
                 articles_found: structuredData.articles?.length || 0,
                 links_found: structuredData.links?.length || 0,
-                images_found: structuredData.images?.length || 0
+                images_found: structuredData.images?.length || 0,
+                navigation_items: structuredData.navigation?.length || 0,
+                list_items: structuredData.listItems?.length || 0
               }
             }
           }), {
