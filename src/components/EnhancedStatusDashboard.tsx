@@ -3,29 +3,24 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   Shield, 
   Brain, 
-  Zap, 
   Database, 
   Globe, 
   TrendingUp, 
-  Users, 
-  Clock,
   CheckCircle,
   AlertTriangle,
-  Activity,
   Target,
   Cpu,
   Crown
 } from 'lucide-react';
 
 interface SystemMetrics {
-  uptime: string;
-  activeUsers: number;
   successRate: number;
-  totalRequests: number;
-  avgResponseTime: string;
+  totalApis: number;
   stealthLevels: {
     level: number;
     name: string;
@@ -41,16 +36,27 @@ interface EnhancedStatusDashboardProps {
   isLoading?: boolean;
 }
 
+const fetchTotalApis = async () => {
+  const { count, error } = await supabase
+    .from('generated_apis')
+    .select('*', { count: 'exact', head: true });
+  
+  if (error) throw error;
+  return count || 0;
+};
+
 const EnhancedStatusDashboard: React.FC<EnhancedStatusDashboardProps> = ({ 
   metrics, 
   isLoading = false 
 }) => {
+  const { data: totalApis, isLoading: isLoadingApis } = useQuery({
+    queryKey: ['totalApis'],
+    queryFn: fetchTotalApis,
+  });
+
   const defaultMetrics: SystemMetrics = {
-    uptime: '99.9%',
-    activeUsers: 1247,
     successRate: 94.2,
-    totalRequests: 15847,
-    avgResponseTime: '0.8s',
+    totalApis: totalApis || 0,
     stealthLevels: [
       {
         level: 1,
@@ -92,31 +98,7 @@ const EnhancedStatusDashboard: React.FC<EnhancedStatusDashboardProps> = ({
   return (
     <div className="space-y-6">
       {/* System Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Activity className="h-5 w-5 text-green-500" />
-              <div>
-                <div className="font-semibold">{data.uptime}</div>
-                <div className="text-sm text-muted-foreground">Uptime</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-blue-500" />
-              <div>
-                <div className="font-semibold">{data.activeUsers.toLocaleString()}</div>
-                <div className="text-sm text-muted-foreground">Active Users</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2">
@@ -134,20 +116,10 @@ const EnhancedStatusDashboard: React.FC<EnhancedStatusDashboardProps> = ({
             <div className="flex items-center gap-2">
               <Database className="h-5 w-5 text-purple-500" />
               <div>
-                <div className="font-semibold">{data.totalRequests.toLocaleString()}</div>
+                <div className="font-semibold">
+                  {isLoadingApis ? '...' : data.totalApis.toLocaleString()}
+                </div>
                 <div className="text-sm text-muted-foreground">Total APIs</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-orange-500" />
-              <div>
-                <div className="font-semibold">{data.avgResponseTime}</div>
-                <div className="text-sm text-muted-foreground">Avg Response</div>
               </div>
             </div>
           </CardContent>
