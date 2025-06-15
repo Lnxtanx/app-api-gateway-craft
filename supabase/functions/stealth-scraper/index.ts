@@ -1,4 +1,3 @@
-
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 import { BrowserFingerprintManager } from './browser-fingerprint-manager.ts';
@@ -36,8 +35,8 @@ serve(async (req) => {
 
     const { action, url, priority, stealth_level, scraping_intent } = requestData;
     
-    // Default to returning system stats for GET requests or requests without action
-    if (!action || req.method === 'GET') {
+    // Return system stats only for GET requests or when explicitly no action is provided
+    if (req.method === 'GET' || (!action && req.method !== 'POST')) {
       console.log('📊 Fetching system stats...');
       const stats = await getSystemStats();
       return new Response(JSON.stringify(stats), {
@@ -71,6 +70,14 @@ serve(async (req) => {
         });
 
       default:
+        // If action is provided but not recognized, and it's a POST request with no action, return stats
+        if (!action) {
+          console.log('📊 Fetching system stats (no action in POST)...');
+          const stats = await getSystemStats();
+          return new Response(JSON.stringify(stats), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
         throw new Error(`Unknown action: ${action}`);
     }
 
